@@ -6,10 +6,12 @@ import { useEffect, useMemo, useState } from "react";
 type GameId = "jungle" | "temple" | "pirate";
 type Game = { id: GameId; number: string; title: string; subtitle: string; image: string; accent: string; icon: string; how: string };
 
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
 const games: Game[] = [
-  { id: "jungle", number: "I", title: "Jungle Word Quest", subtitle: "Find the right pictures and conquer the jungle vocabulary trail.", image: "/jungle-quest.png", accent: "#42f5df", icon: "🌿", how: "Complete six missions. In each one, choose only the three objects from the named category to unlock the green map piece." },
-  { id: "temple", number: "II", title: "Temple Grammar Trials", subtitle: "Solve grammar puzzles, open ancient doors and cross the bridge.", image: "/temple-trials.png", accent: "#ffc94b", icon: "🏛️", how: "Complete six sentences by choosing the correct grammar answer. Six opened doors reveal the golden map piece." },
-  { id: "pirate", number: "III", title: "Pirate Island Mystery", subtitle: "Listen to clues, explore the island and discover the hidden treasure.", image: "/pirate-island.png", accent: "#4de8ff", icon: "⚓", how: "Listen carefully without reading the clue, then choose the matching landmark. The clue appears only after your choice. Six clues unlock the blue map piece." },
+  { id: "jungle", number: "I", title: "Jungle Word Quest", subtitle: "Find the right pictures and conquer the jungle vocabulary trail.", image: `${basePath}/jungle-quest.png`, accent: "#42f5df", icon: "🌿", how: "Complete six missions. In each one, choose only the three objects from the named category to unlock the green map piece." },
+  { id: "temple", number: "II", title: "Temple Grammar Trials", subtitle: "Solve grammar puzzles, open ancient doors and cross the bridge.", image: `${basePath}/temple-trials.png`, accent: "#ffc94b", icon: "🏛️", how: "Complete six sentences by choosing the correct grammar answer. Six opened doors reveal the golden map piece." },
+  { id: "pirate", number: "III", title: "Pirate Island Mystery", subtitle: "Listen to clues, explore the island and discover the hidden treasure.", image: `${basePath}/pirate-island.png`, accent: "#4de8ff", icon: "⚓", how: "Listen carefully without reading the clue, then choose the matching landmark. The clue appears only after your choice. Six clues unlock the blue map piece." },
 ];
 
 const jungleRounds = [
@@ -116,7 +118,7 @@ export default function Home() {
   }
 
   return (
-    <main className="adventure-shell">
+    <main className="adventure-shell" style={{ "--map-image": `url(${basePath}/lost-map-v2.png)` } as React.CSSProperties}>
       <div className="stars" aria-hidden="true" />
       <header className="topbar">
         <a className="brand-mark" href="#top" aria-label="English Adventure home"><span>✦</span> EA</a>
