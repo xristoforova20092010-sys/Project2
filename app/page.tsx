@@ -148,10 +148,9 @@ export default function Home() {
       <section className="journey" id="journey">
         <div className="map-orb">🧭</div><div><small>YOUR JOURNEY</small><h2>{completed.length === 3 ? "The Lost Map Is Complete!" : "Restore the Lost Map"}</h2><p>{completed.length === 3 ? "Congratulations, English Explorer! The treasure is yours." : "Each completed adventure reveals one piece of the ancient map."}</p></div>
         <div className={`map-puzzle ${completed.length === 3 ? "assembled" : ""}`} aria-label={`${completed.length} of 3 map pieces collected`}>
-          <span className={`map-piece piece-one ${completed.includes("jungle") ? "found" : ""}`}>🌿</span>
-          <span className={`map-piece piece-two ${completed.includes("temple") ? "found" : ""}`}>✦</span>
-          <span className={`map-piece piece-three ${completed.includes("pirate") ? "found" : ""}`}>⚓</span>
-          {completed.length === 3 && <b className="treasure-mark">×</b>}
+          <span className={`map-piece piece-one ${completed.includes("jungle") ? "found" : ""}`} aria-label="Jungle map fragment" />
+          <span className={`map-piece piece-two ${completed.includes("temple") ? "found" : ""}`} aria-label="Temple map fragment" />
+          <span className={`map-piece piece-three ${completed.includes("pirate") ? "found" : ""}`} aria-label="Pirate island map fragment" />
         </div>
       </section>
 
@@ -163,7 +162,7 @@ export default function Home() {
         <div className={`game-modal ${active}`}>
           <div className="game-banner"><Image src={game.image} alt="" fill sizes="800px" /><div /><button className="close" onClick={closeGame} aria-label="Close game">×</button><p>CHAPTER {game.number} · TRIAL {Math.min(round + 1, 6)} / 6</p><h2>{game.title}</h2></div>
           <div className="game-content">
-            {message === "Map piece found! ✦" ? <div className="victory"><div className={`earned-fragment ${active}`}>{active === "jungle" ? "🌿" : active === "temple" ? "✦" : "⚓"}</div><p>ADVENTURE COMPLETE</p><h3>Map piece found!</h3><p>{completed.length === 3 ? "All fragments are ready. Watch them join before the site refreshes." : "This fragment has been added to the Lost Map."}</p><button className="play-button" onClick={returnToMap}>{completed.length === 3 ? "ASSEMBLE THE MAP" : "ADD TO THE MAP"} <span>›</span></button></div> : <>
+            {message === "Map piece found! ✦" ? <div className="victory"><div className={`earned-fragment ${active}`} aria-label={`${active} map fragment`} /><p>ADVENTURE COMPLETE</p><h3>Map piece found!</h3><p>{completed.length === 3 ? "All fragments are ready. Watch them join before the site refreshes." : "This fragment has been added to the Lost Map."}</p><button className="play-button" onClick={returnToMap}>{completed.length === 3 ? "ASSEMBLE THE MAP" : "ADD TO THE MAP"} <span>›</span></button></div> : <>
               {active === "jungle" && <><p className="mission">MISSION</p><h3>{jungleRounds[round].prompt}</h3><div className="answer-grid picture-grid">{options.map((option) => <button key={option} className={picked.includes(option) ? "selected" : ""} disabled={picked.includes(option)} onClick={() => chooseJungle(option)}>{option}</button>)}</div></>}
               {active === "temple" && <><p className="mission">CHOOSE THE KEY</p><h3>{templeRounds[round].prompt}</h3><div className="answer-grid">{options.map((option) => <button key={option} onClick={() => chooseAnswer(option, "temple")}>{option}</button>)}</div></>}
               {active === "pirate" && <><p className="mission">LISTEN &amp; FIND</p><button className="listen audio-only" onClick={speak}>🔊 PLAY AUDIO CLUE</button><p className="audio-instruction">Listen carefully, then choose the correct place.</p><div className="answer-grid">{options.map((option) => <button key={option} onClick={() => chooseAnswer(option, "pirate")}>{option}</button>)}</div>{revealedClue && <div className="revealed-clue"><small>CLUE REVEALED</small><p>{revealedClue}</p></div>}</>}
