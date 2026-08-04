@@ -75,8 +75,10 @@ export default function Home() {
   function closeGame() { setActive(null); setRound(0); setPicked([]); setMessage(""); setRevealedClue(""); }
   function returnToMap() {
     if (completed.length === 3) {
+      closeGame();
+      window.setTimeout(() => document.getElementById("journey")?.scrollIntoView({ behavior: "smooth", block: "center" }), 80);
       sessionStorage.setItem("english-adventure-show-map", "yes");
-      window.location.reload();
+      window.setTimeout(() => window.location.reload(), 3200);
       return;
     }
     closeGame();
@@ -161,7 +163,7 @@ export default function Home() {
         <div className={`game-modal ${active}`}>
           <div className="game-banner"><Image src={game.image} alt="" fill sizes="800px" /><div /><button className="close" onClick={closeGame} aria-label="Close game">×</button><p>CHAPTER {game.number} · TRIAL {Math.min(round + 1, 6)} / 6</p><h2>{game.title}</h2></div>
           <div className="game-content">
-            {message === "Map piece found! ✦" ? <div className="victory"><div className={`earned-fragment ${active}`}>{active === "jungle" ? "🌿" : active === "temple" ? "✦" : "⚓"}</div><p>ADVENTURE COMPLETE</p><h3>Map piece found!</h3><p>{completed.length === 3 ? "All fragments are ready. The site will refresh and reveal the complete map." : "This fragment has been added to the Lost Map."}</p><button className="play-button" onClick={returnToMap}>{completed.length === 3 ? "REVEAL COMPLETE MAP" : "ADD TO THE MAP"} <span>›</span></button></div> : <>
+            {message === "Map piece found! ✦" ? <div className="victory"><div className={`earned-fragment ${active}`}>{active === "jungle" ? "🌿" : active === "temple" ? "✦" : "⚓"}</div><p>ADVENTURE COMPLETE</p><h3>Map piece found!</h3><p>{completed.length === 3 ? "All fragments are ready. Watch them join before the site refreshes." : "This fragment has been added to the Lost Map."}</p><button className="play-button" onClick={returnToMap}>{completed.length === 3 ? "ASSEMBLE THE MAP" : "ADD TO THE MAP"} <span>›</span></button></div> : <>
               {active === "jungle" && <><p className="mission">MISSION</p><h3>{jungleRounds[round].prompt}</h3><div className="answer-grid picture-grid">{options.map((option) => <button key={option} className={picked.includes(option) ? "selected" : ""} disabled={picked.includes(option)} onClick={() => chooseJungle(option)}>{option}</button>)}</div></>}
               {active === "temple" && <><p className="mission">CHOOSE THE KEY</p><h3>{templeRounds[round].prompt}</h3><div className="answer-grid">{options.map((option) => <button key={option} onClick={() => chooseAnswer(option, "temple")}>{option}</button>)}</div></>}
               {active === "pirate" && <><p className="mission">LISTEN &amp; FIND</p><button className="listen audio-only" onClick={speak}>🔊 PLAY AUDIO CLUE</button><p className="audio-instruction">Listen carefully, then choose the correct place.</p><div className="answer-grid">{options.map((option) => <button key={option} onClick={() => chooseAnswer(option, "pirate")}>{option}</button>)}</div>{revealedClue && <div className="revealed-clue"><small>CLUE REVEALED</small><p>{revealedClue}</p></div>}</>}
