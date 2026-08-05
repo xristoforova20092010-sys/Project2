@@ -71,12 +71,8 @@ export default function Home() {
   const [audioPlaysLeft, setAudioPlaysLeft] = useState(2);
 
   useEffect(() => {
-    const saved = localStorage.getItem("english-adventure-progress");
-    if (saved) window.setTimeout(() => setCompleted(JSON.parse(saved)), 0);
-    if (sessionStorage.getItem("english-adventure-show-map") === "yes") {
-      sessionStorage.removeItem("english-adventure-show-map");
-      window.setTimeout(() => document.getElementById("journey")?.scrollIntoView({ behavior: "smooth", block: "center" }), 250);
-    }
+    localStorage.removeItem("english-adventure-progress");
+    sessionStorage.removeItem("english-adventure-show-map");
   }, []);
 
   const game = useMemo(() => games.find((item) => item.id === active), [active]);
@@ -112,19 +108,12 @@ export default function Home() {
   function openGame(id: GameId) { setActive(id); setRound(0); setPicked([]); setMessage(""); setRevealedClue(""); setLives(3); setJungleStage(0); setGameOver(false); setAudioPlayed(false); setAudioPlaysLeft(2); setTimeLeft(id === "jungle" ? jungleRounds[0].seconds : id === "temple" ? templeRounds[0].seconds : id === "pirate" ? pirateRounds[0].seconds : 0); setOptions(getOptions(id, 0)); }
   function closeGame() { setActive(null); setRound(0); setPicked([]); setMessage(""); setRevealedClue(""); }
   function returnToMap() {
-    if (completed.length === 3) {
-      closeGame();
-      window.setTimeout(() => document.getElementById("journey")?.scrollIntoView({ behavior: "smooth", block: "center" }), 80);
-      sessionStorage.setItem("english-adventure-show-map", "yes");
-      window.setTimeout(() => window.location.reload(), 3200);
-      return;
-    }
     closeGame();
     window.setTimeout(() => document.getElementById("journey")?.scrollIntoView({ behavior: "smooth", block: "center" }), 80);
   }
   function finish(id: GameId) {
     const next = completed.includes(id) ? completed : [...completed, id];
-    setCompleted(next); localStorage.setItem("english-adventure-progress", JSON.stringify(next));
+    setCompleted(next);
     setMessage("Map piece found! ✦");
   }
   function advance(id: GameId) {
@@ -232,7 +221,7 @@ export default function Home() {
         <div className={`game-modal ${active}`}>
           <div className="game-banner"><Image src={game.image} alt="" fill sizes="800px" /><div /><button className="close" onClick={closeGame} aria-label="Close game">×</button><p>CHAPTER {game.number} · TRIAL {Math.min(round + 1, 6)} / 6</p><h2>{game.title}</h2></div>
           <div className="game-content">
-            {message === "Map piece found! ✦" ? <div className="victory"><div className={`earned-fragment ${active}`} aria-label={`${active} map fragment`} /><p>ADVENTURE COMPLETE</p><h3>Map piece found!</h3><p>{completed.length === 3 ? "All fragments are ready. Watch them join before the site refreshes." : "This fragment has been added to the Lost Map."}</p><button className="play-button" onClick={returnToMap}>{completed.length === 3 ? "ASSEMBLE THE MAP" : "ADD TO THE MAP"} <span>›</span></button></div> : <>
+            {message === "Map piece found! ✦" ? <div className="victory"><div className={`earned-fragment ${active}`} aria-label={`${active} map fragment`} /><p>ADVENTURE COMPLETE</p><h3>Map piece found!</h3><p>{completed.length === 3 ? "The Lost Map is complete! Your progress will reset when the page is refreshed." : "This fragment has been added to the Lost Map."}</p><button className="play-button" onClick={returnToMap}>{completed.length === 3 ? "VIEW COMPLETE MAP" : "ADD TO THE MAP"} <span>›</span></button></div> : <>
               {active === "jungle" && gameOver ? <div className="game-over"><p className="mission">EXPEDITION PAUSED</p><h3>Try the jungle trail again</h3><p>Choose carefully and keep an eye on the timer.</p><button className="play-button" onClick={() => openGame("jungle")}>TRY AGAIN <span>›</span></button></div> : active === "jungle" && <><div className="jungle-hud"><span className="lives" aria-label={`${lives} lives remaining`}>{"❤️".repeat(lives)}{"♡".repeat(3 - lives)}</span><span className={`timer ${timeLeft <= 5 ? "danger" : ""}`}>⏱ {timeLeft}s</span></div><p className="mission">{round === 5 ? `FINAL · STEP ${jungleStage + 1} / 3` : "MISSION"}</p><h3>{round === 5 ? jungleFinalStages[jungleStage].prompt : jungleRounds[round].prompt}</h3><div className={`answer-grid picture-grid ${options.length > 8 ? "dense" : ""}`}>{options.map((option) => <button key={option} className={picked.includes(option) ? "selected" : ""} disabled={picked.includes(option)} onClick={() => chooseJungle(option)}>{option}</button>)}</div></>}
               {active === "temple" && gameOver ? <div className="game-over temple-over"><p className="mission">THE DOORS ARE SEALED</p><h3>Begin the grammar trials again</h3><p>Listen closely, watch the timer and protect your three lives.</p><button className="play-button" onClick={() => openGame("temple")}>TRY AGAIN <span>›</span></button></div> : active === "temple" && <><div className="jungle-hud temple-hud"><span className="lives" aria-label={`${lives} lives remaining`}>{"❤️".repeat(lives)}{"♡".repeat(3 - lives)}</span><span className={`timer ${timeLeft <= 5 ? "danger" : ""}`}>⏱ {timeLeft}s</span></div><p className="mission">{templeRounds[round].topic}</p><button className="listen temple-listen" onClick={speakTemple} aria-label="Listen to the sentence">🔊 LISTEN TO THE SENTENCE</button><h3>{templeRounds[round].prompt}</h3><div className={`answer-grid ${options.length > 4 ? "wide-options" : ""}`}>{options.map((option) => <button key={option} onClick={() => chooseAnswer(option, "temple")}>{option}</button>)}</div></>}
               {active === "pirate" && gameOver ? <div className="game-over pirate-over"><p className="mission">THE TRAIL IS LOST</p><h3>Listen for the island clues again</h3><p>Use your two audio plays wisely and choose before time runs out.</p><button className="play-button" onClick={() => openGame("pirate")}>TRY AGAIN <span>›</span></button></div> : active === "pirate" && <><div className="jungle-hud pirate-hud"><span className="lives" aria-label={`${lives} lives remaining`}>{"❤️".repeat(lives)}{"♡".repeat(3 - lives)}</span><span className={`timer ${audioPlayed && timeLeft <= 5 ? "danger" : ""}`}>{audioPlayed ? `⏱ ${timeLeft}s` : "⏱ READY"}</span></div><p className="mission">LISTEN &amp; FIND</p><button className="listen audio-only" onClick={speak} disabled={audioPlaysLeft === 0}>🔊 {audioPlayed ? "PLAY CLUE AGAIN" : "PLAY AUDIO CLUE"} · {audioPlaysLeft} LEFT</button><p className="audio-instruction">{audioPlayed ? "Choose the matching landmark. The written clue stays hidden until you are correct." : "Play the clue to unlock the landmarks and start the timer."}</p><div className={`answer-grid pirate-options ${options.length > 4 ? "dense-pirate" : ""}`}>{options.map((option) => <button key={option} disabled={!audioPlayed} onClick={() => chooseAnswer(option, "pirate")}>{option}</button>)}</div>{revealedClue && <div className="revealed-clue"><small>CLUE REVEALED</small><p>{revealedClue}</p></div>}</>}
