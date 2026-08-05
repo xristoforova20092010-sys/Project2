@@ -11,7 +11,7 @@ const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const games: Game[] = [
   { id: "jungle", number: "I", title: "Jungle Word Quest", subtitle: "Race the clock, protect your lives and master the jungle vocabulary trail.", image: `${basePath}/jungle-quest.png`, accent: "#42f5df", icon: "🌿", how: "Complete six timed missions with three lives. The number of choices grows in every round. Finish with a mixed-category jungle challenge to unlock the green map piece." },
   { id: "temple", number: "II", title: "Temple Grammar Trials", subtitle: "Listen, race the clock and solve increasingly difficult grammar puzzles.", image: `${basePath}/temple-trials.png`, accent: "#ffc94b", icon: "🏛️", how: "Complete six timed grammar trials with three lives. Listen to every sentence, choose the missing words and open all six temple doors to reveal the golden map piece." },
-  { id: "pirate", number: "III", title: "Pirate Island Mystery", subtitle: "Listen to clues, explore the island and discover the hidden treasure.", image: `${basePath}/pirate-island.png`, accent: "#4de8ff", icon: "⚓", how: "Listen carefully without reading the clue, then choose the matching landmark. The clue appears only after your choice. Six clues unlock the blue map piece." },
+  { id: "pirate", number: "III", title: "Pirate Island Mystery", subtitle: "Master limited audio clues before time and lives run out.", image: `${basePath}/pirate-island.png`, accent: "#4de8ff", icon: "⚓", how: "Complete six timed listening trials with three lives. You must play each audio clue before answering and may hear it only twice. Choose among increasingly similar landmarks to unlock the blue map piece." },
 ];
 
 const jungleRounds = [
@@ -37,12 +37,12 @@ const templeRounds = [
   { prompt: "If we find the final key, we ___ the treasure room.", seconds: 14, options: ["opened", "will open", "open", "are opening", "opens"], answer: "will open", topic: "FIRST CONDITIONAL" },
 ];
 const pirateRounds = [
-  { prompt: "Which place has a tall brown trunk and green leaves at the top?", options: ["🌴 Palm tree", "⛵ Ship", "💧 Waterfall"], answer: "🌴 Palm tree" },
-  { prompt: "Which place lets explorers walk safely over the river?", options: ["🌉 Bridge", "🗼 Lighthouse", "🏚️ Old house"], answer: "🌉 Bridge" },
-  { prompt: "Which place shines a bright light to guide ships at night?", options: ["🪨 Rocks", "🗼 Lighthouse", "⛵ Ship"], answer: "🗼 Lighthouse" },
-  { prompt: "Which place is dark inside and opens in the side of a rocky hill?", options: ["🌊 River", "🌴 Palm tree", "🕳️ Cave"], answer: "🕳️ Cave" },
-  { prompt: "Which place has water falling from high rocks into a pool?", options: ["💧 Waterfall", "🏚️ Old house", "🌉 Bridge"], answer: "💧 Waterfall" },
-  { prompt: "Which place floats on the sea and carries sailors between islands?", options: ["🗼 Lighthouse", "⛵ Ship", "🪨 Rocks"], answer: "⛵ Ship" },
+  { prompt: "Find the place with a tall brown trunk, no branches near the ground, and green leaves at the top.", seconds: 22, options: ["🌴 Palm tree", "🌳 Jungle tree", "🗼 Lighthouse", "🪨 Rocks"], answer: "🌴 Palm tree" },
+  { prompt: "Find the structure explorers use to cross the river without getting their boots wet.", seconds: 20, options: ["🌉 Bridge", "⛵ Ship", "🛶 Boat", "💧 Waterfall"], answer: "🌉 Bridge" },
+  { prompt: "Find the tall coastal tower whose rotating light warns sailors about danger at night.", seconds: 18, options: ["🗼 Lighthouse", "🏰 Watchtower", "⛵ Ship", "🏚️ Old house", "🪨 Rocks"], answer: "🗼 Lighthouse" },
+  { prompt: "Find the dark natural shelter hidden inside the rocky hill, not the building beside it.", seconds: 17, options: ["🕳️ Cave", "🏚️ Old house", "⛺ Camp", "🪨 Rocks", "🌋 Crater"], answer: "🕳️ Cave" },
+  { prompt: "Follow the sound of water dropping over a high cliff into a pool below.", seconds: 15, options: ["💧 Waterfall", "🌊 River", "🏝️ Lagoon", "🌊 Shore", "🌉 Bridge", "🕳️ Cave"], answer: "💧 Waterfall" },
+  { prompt: "Choose the large sailing vessel anchored beyond the reef, not the smaller boat near the beach.", seconds: 14, options: ["⛵ Ship", "🛶 Boat", "🏴‍☠️ Raft", "🗼 Lighthouse", "🏝️ Island", "⚓ Harbour"], answer: "⛵ Ship" },
 ];
 
 function shuffled<T>(items: T[]) {
@@ -67,6 +67,8 @@ export default function Home() {
   const [timeLeft, setTimeLeft] = useState(0);
   const [jungleStage, setJungleStage] = useState(0);
   const [gameOver, setGameOver] = useState(false);
+  const [audioPlayed, setAudioPlayed] = useState(false);
+  const [audioPlaysLeft, setAudioPlaysLeft] = useState(2);
 
   useEffect(() => {
     const saved = localStorage.getItem("english-adventure-progress");
@@ -80,34 +82,34 @@ export default function Home() {
   const game = useMemo(() => games.find((item) => item.id === active), [active]);
 
   useEffect(() => {
-    if ((active !== "jungle" && active !== "temple") || gameOver || message.includes("Map piece found")) return;
+    if ((active !== "jungle" && active !== "temple" && active !== "pirate") || (active === "pirate" && !audioPlayed) || gameOver || message.includes("Map piece found")) return;
     const timer = window.setInterval(() => setTimeLeft((current) => Math.max(0, current - 1)), 1000);
     return () => window.clearInterval(timer);
-  }, [active, gameOver, message, round]);
+  }, [active, audioPlayed, gameOver, message, round]);
 
   useEffect(() => {
-    if ((active !== "jungle" && active !== "temple") || gameOver || timeLeft !== 0 || message.includes("Map piece found")) return;
+    if ((active !== "jungle" && active !== "temple" && active !== "pirate") || (active === "pirate" && !audioPlayed) || gameOver || timeLeft !== 0 || message.includes("Map piece found")) return;
     const timeout = window.setTimeout(() => {
       const nextLives = lives - 1;
       setLives(nextLives);
       setPicked([]);
       if (nextLives <= 0) {
         setGameOver(true);
-        setMessage(active === "jungle" ? "Time is up. The jungle wins this time!" : "Time is up. The temple doors are sealed!");
+        setMessage(active === "jungle" ? "Time is up. The jungle wins this time!" : active === "temple" ? "Time is up. The temple doors are sealed!" : "Time is up. The treasure trail is lost!");
       } else {
         setMessage("Time is up — one life lost. Try this trial again!");
-        setTimeLeft(active === "jungle" ? jungleRounds[round].seconds : templeRounds[round].seconds);
+        setTimeLeft(active === "jungle" ? jungleRounds[round].seconds : active === "temple" ? templeRounds[round].seconds : pirateRounds[round].seconds);
         window.setTimeout(() => setMessage(""), 1200);
       }
     }, 0);
     return () => window.clearTimeout(timeout);
-  }, [active, gameOver, lives, message, round, timeLeft]);
+  }, [active, audioPlayed, gameOver, lives, message, round, timeLeft]);
 
   function getOptions(id: GameId, index: number) {
     const source = id === "jungle" ? jungleRounds[index].options : id === "temple" ? templeRounds[index].options : pirateRounds[index].options;
     return shuffled(source);
   }
-  function openGame(id: GameId) { setActive(id); setRound(0); setPicked([]); setMessage(""); setRevealedClue(""); setLives(3); setJungleStage(0); setGameOver(false); setTimeLeft(id === "jungle" ? jungleRounds[0].seconds : id === "temple" ? templeRounds[0].seconds : 0); setOptions(getOptions(id, 0)); }
+  function openGame(id: GameId) { setActive(id); setRound(0); setPicked([]); setMessage(""); setRevealedClue(""); setLives(3); setJungleStage(0); setGameOver(false); setAudioPlayed(false); setAudioPlaysLeft(2); setTimeLeft(id === "jungle" ? jungleRounds[0].seconds : id === "temple" ? templeRounds[0].seconds : id === "pirate" ? pirateRounds[0].seconds : 0); setOptions(getOptions(id, 0)); }
   function closeGame() { setActive(null); setRound(0); setPicked([]); setMessage(""); setRevealedClue(""); }
   function returnToMap() {
     if (completed.length === 3) {
@@ -128,9 +130,10 @@ export default function Home() {
   function advance(id: GameId) {
     if (round === 5) finish(id); else {
       const nextRound = round + 1;
-      setRound(nextRound); setPicked([]); setRevealedClue(""); setJungleStage(0); setOptions(getOptions(id, nextRound));
+      setRound(nextRound); setPicked([]); setRevealedClue(""); setJungleStage(0); setAudioPlayed(false); setAudioPlaysLeft(2); setOptions(getOptions(id, nextRound));
       if (id === "jungle") setTimeLeft(jungleRounds[nextRound].seconds);
       if (id === "temple") setTimeLeft(templeRounds[nextRound].seconds);
+      if (id === "pirate") setTimeLeft(pirateRounds[nextRound].seconds);
       setMessage("Correct! The path opens…"); setTimeout(() => setMessage(""), 900);
     }
   }
@@ -153,19 +156,25 @@ export default function Home() {
   }
   function chooseAnswer(option: string, id: "temple" | "pirate") {
     const data = id === "temple" ? templeRounds[round] : pirateRounds[round];
-    if (id === "pirate") setRevealedClue(data.prompt);
     if (option === data.answer) {
-      if (id === "pirate") { setMessage("Correct! The clue is revealed below."); setTimeout(() => advance(id), 1150); }
+      if (id === "pirate") { setRevealedClue(data.prompt); setMessage("Correct! The clue is revealed below."); setTimeout(() => advance(id), 1450); }
       else advance(id);
     } else if (id === "temple") {
       const nextLives = lives - 1;
       setLives(nextLives);
       setMessage(nextLives <= 0 ? "No lives left. The temple doors are sealed!" : "Wrong key — one life lost!");
       if (nextLives <= 0) setGameOver(true);
-    } else setMessage("The compass points elsewhere. Listen again and try another place.");
+    } else {
+      const nextLives = lives - 1;
+      setLives(nextLives);
+      setMessage(nextLives <= 0 ? "No lives left. The treasure trail is lost!" : "The compass points elsewhere — one life lost!");
+      if (nextLives <= 0) setGameOver(true);
+    }
   }
   function speak() {
-    if (!("speechSynthesis" in window)) return;
+    if (!("speechSynthesis" in window)) { setMessage("Audio is not supported in this browser."); return; }
+    if (audioPlaysLeft <= 0) { setMessage("No audio replays left — trust your memory!"); return; }
+    setAudioPlayed(true); setAudioPlaysLeft((count) => count - 1); setMessage("");
     speechSynthesis.cancel(); const utterance = new SpeechSynthesisUtterance(pirateRounds[round].prompt); utterance.lang = "en-US"; utterance.rate = 0.85; speechSynthesis.speak(utterance);
   }
   function speakTemple() {
@@ -226,8 +235,8 @@ export default function Home() {
             {message === "Map piece found! ✦" ? <div className="victory"><div className={`earned-fragment ${active}`} aria-label={`${active} map fragment`} /><p>ADVENTURE COMPLETE</p><h3>Map piece found!</h3><p>{completed.length === 3 ? "All fragments are ready. Watch them join before the site refreshes." : "This fragment has been added to the Lost Map."}</p><button className="play-button" onClick={returnToMap}>{completed.length === 3 ? "ASSEMBLE THE MAP" : "ADD TO THE MAP"} <span>›</span></button></div> : <>
               {active === "jungle" && gameOver ? <div className="game-over"><p className="mission">EXPEDITION PAUSED</p><h3>Try the jungle trail again</h3><p>Choose carefully and keep an eye on the timer.</p><button className="play-button" onClick={() => openGame("jungle")}>TRY AGAIN <span>›</span></button></div> : active === "jungle" && <><div className="jungle-hud"><span className="lives" aria-label={`${lives} lives remaining`}>{"❤️".repeat(lives)}{"♡".repeat(3 - lives)}</span><span className={`timer ${timeLeft <= 5 ? "danger" : ""}`}>⏱ {timeLeft}s</span></div><p className="mission">{round === 5 ? `FINAL · STEP ${jungleStage + 1} / 3` : "MISSION"}</p><h3>{round === 5 ? jungleFinalStages[jungleStage].prompt : jungleRounds[round].prompt}</h3><div className={`answer-grid picture-grid ${options.length > 8 ? "dense" : ""}`}>{options.map((option) => <button key={option} className={picked.includes(option) ? "selected" : ""} disabled={picked.includes(option)} onClick={() => chooseJungle(option)}>{option}</button>)}</div></>}
               {active === "temple" && gameOver ? <div className="game-over temple-over"><p className="mission">THE DOORS ARE SEALED</p><h3>Begin the grammar trials again</h3><p>Listen closely, watch the timer and protect your three lives.</p><button className="play-button" onClick={() => openGame("temple")}>TRY AGAIN <span>›</span></button></div> : active === "temple" && <><div className="jungle-hud temple-hud"><span className="lives" aria-label={`${lives} lives remaining`}>{"❤️".repeat(lives)}{"♡".repeat(3 - lives)}</span><span className={`timer ${timeLeft <= 5 ? "danger" : ""}`}>⏱ {timeLeft}s</span></div><p className="mission">{templeRounds[round].topic}</p><button className="listen temple-listen" onClick={speakTemple} aria-label="Listen to the sentence">🔊 LISTEN TO THE SENTENCE</button><h3>{templeRounds[round].prompt}</h3><div className={`answer-grid ${options.length > 4 ? "wide-options" : ""}`}>{options.map((option) => <button key={option} onClick={() => chooseAnswer(option, "temple")}>{option}</button>)}</div></>}
-              {active === "pirate" && <><p className="mission">LISTEN &amp; FIND</p><button className="listen audio-only" onClick={speak}>🔊 PLAY AUDIO CLUE</button><p className="audio-instruction">Listen carefully, then choose the correct place.</p><div className="answer-grid">{options.map((option) => <button key={option} onClick={() => chooseAnswer(option, "pirate")}>{option}</button>)}</div>{revealedClue && <div className="revealed-clue"><small>CLUE REVEALED</small><p>{revealedClue}</p></div>}</>}
-              {!gameOver && <div className="game-status"><span>{active === "jungle" || active === "temple" ? `${lives} lives` : "3 lives"}</span><p aria-live="polite">{message || (active === "pirate" ? "Play the clue and choose a place" : "Choose your answer")}</p><b>{"◆".repeat(round)}{"◇".repeat(6 - round)}</b></div>}
+              {active === "pirate" && gameOver ? <div className="game-over pirate-over"><p className="mission">THE TRAIL IS LOST</p><h3>Listen for the island clues again</h3><p>Use your two audio plays wisely and choose before time runs out.</p><button className="play-button" onClick={() => openGame("pirate")}>TRY AGAIN <span>›</span></button></div> : active === "pirate" && <><div className="jungle-hud pirate-hud"><span className="lives" aria-label={`${lives} lives remaining`}>{"❤️".repeat(lives)}{"♡".repeat(3 - lives)}</span><span className={`timer ${audioPlayed && timeLeft <= 5 ? "danger" : ""}`}>{audioPlayed ? `⏱ ${timeLeft}s` : "⏱ READY"}</span></div><p className="mission">LISTEN &amp; FIND</p><button className="listen audio-only" onClick={speak} disabled={audioPlaysLeft === 0}>🔊 {audioPlayed ? "PLAY CLUE AGAIN" : "PLAY AUDIO CLUE"} · {audioPlaysLeft} LEFT</button><p className="audio-instruction">{audioPlayed ? "Choose the matching landmark. The written clue stays hidden until you are correct." : "Play the clue to unlock the landmarks and start the timer."}</p><div className={`answer-grid pirate-options ${options.length > 4 ? "dense-pirate" : ""}`}>{options.map((option) => <button key={option} disabled={!audioPlayed} onClick={() => chooseAnswer(option, "pirate")}>{option}</button>)}</div>{revealedClue && <div className="revealed-clue"><small>CLUE REVEALED</small><p>{revealedClue}</p></div>}</>}
+              {!gameOver && <div className="game-status"><span>{`${lives} lives`}</span><p aria-live="polite">{message || (active === "pirate" ? (audioPlayed ? "Choose the place from memory" : "Play the audio clue") : "Choose your answer")}</p><b>{"◆".repeat(round)}{"◇".repeat(6 - round)}</b></div>}
             </>}
           </div>
         </div>
