@@ -194,13 +194,39 @@ export default function Home() {
       const next = [...picked, word];
       setPicked(next);
       setMessage(next.length === data.words.length ? "Spell complete — the altar is awakening!" : `The sphere “${word}” is locked in place.`);
-      if (next.length === data.words.length) setTimeout(() => advance("temple"), 850);
+      if (next.length === data.words.length) {
+        playTempleVictory();
+        setTimeout(() => advance("temple"), 1200);
+      }
     } else {
       const nextLives = lives - 1;
       setLives(nextLives);
       setMessage(nextLives <= 0 ? "The spell collapsed. The temple doors are sealed!" : `Unstable sphere! You need “${expected}” next — one life lost.`);
       if (nextLives <= 0) setGameOver(true);
     }
+  }
+  function playTempleVictory() {
+    const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const context = new AudioContextClass();
+    const master = context.createGain();
+    master.gain.setValueAtTime(0.0001, context.currentTime);
+    master.gain.exponentialRampToValueAtTime(0.16, context.currentTime + 0.025);
+    master.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 1.1);
+    master.connect(context.destination);
+    [523.25, 659.25, 783.99, 1046.5].forEach((frequency, index) => {
+      const oscillator = context.createOscillator();
+      const noteGain = context.createGain();
+      const start = context.currentTime + index * 0.16;
+      oscillator.type = index === 3 ? "sine" : "triangle";
+      oscillator.frequency.setValueAtTime(frequency, start);
+      noteGain.gain.setValueAtTime(0.0001, start);
+      noteGain.gain.exponentialRampToValueAtTime(0.65, start + 0.02);
+      noteGain.gain.exponentialRampToValueAtTime(0.0001, start + 0.42);
+      oscillator.connect(noteGain); noteGain.connect(master);
+      oscillator.start(start); oscillator.stop(start + 0.45);
+    });
+    window.setTimeout(() => void context.close(), 1400);
   }
   function chooseAnswer(option: string, id: "pirate") {
     const data = pirateRounds[round];
