@@ -61,12 +61,12 @@ const jungleWordLevels = [
   { word: "TRAIN", target: "train", choices: ["tiger", "frogA", "rabbit", "key", "apple", "elephant", "icecream", "nest"] },
 ];
 const templeRounds = [
-  { prompt: "Tom ___ football every Saturday.", seconds: 22, options: ["play", "plays", "is play", "playing"], answer: "plays", topic: "PRESENT SIMPLE" },
-  { prompt: "There ___ two parrots in the ancient tree.", seconds: 20, options: ["is", "are", "was", "be"], answer: "are", topic: "THERE IS / ARE" },
-  { prompt: "The explorers ___ the first door yesterday.", seconds: 18, options: ["open", "opened", "are opening", "opens"], answer: "opened", topic: "PAST SIMPLE" },
-  { prompt: "Look! The guardian ___ across the bridge now.", seconds: 16, options: ["runs", "ran", "is running", "running"], answer: "is running", topic: "PRESENT CONTINUOUS" },
-  { prompt: "Mia ___ enter the chamber because the door was locked.", seconds: 15, options: ["can", "could", "couldn't", "doesn't"], answer: "couldn't", topic: "MODAL VERBS" },
-  { prompt: "If we find the final key, we ___ the treasure room.", seconds: 14, options: ["opened", "will open", "open", "are opening", "opens"], answer: "will open", topic: "FIRST CONDITIONAL" },
+  { prompt: "Tom plays football every Saturday.", clue: "Tom  •  football  •  every Saturday", seconds: 38, words: ["Tom", "plays", "football", "every Saturday"], distractors: ["play", "is playing", "yesterday"], topic: "PRESENT SIMPLE" },
+  { prompt: "There are two parrots in the ancient tree.", clue: "two parrots  •  ancient tree", seconds: 38, words: ["There", "are", "two parrots", "in the ancient tree"], distractors: ["is", "was", "be"], topic: "THERE IS / ARE" },
+  { prompt: "The explorers opened the first door yesterday.", clue: "explorers  •  first door  •  yesterday", seconds: 36, words: ["The explorers", "opened", "the first door", "yesterday"], distractors: ["open", "opens", "are opening"], topic: "PAST SIMPLE" },
+  { prompt: "The guardian is running across the bridge now.", clue: "guardian  •  bridge  •  now", seconds: 34, words: ["The guardian", "is running", "across the bridge", "now"], distractors: ["runs", "ran", "running"], topic: "PRESENT CONTINUOUS" },
+  { prompt: "Mia could not enter the chamber.", clue: "Mia  •  locked chamber  •  past", seconds: 32, words: ["Mia", "could not", "enter", "the chamber"], distractors: ["can not", "does not", "entered"], topic: "MODAL VERBS" },
+  { prompt: "If we find the key, we will open the treasure room.", clue: "find the key  ➜  open the treasure room", seconds: 40, words: ["If we find", "the key", "we will open", "the treasure room"], distractors: ["we opened", "we open", "we are opening"], topic: "FIRST CONDITIONAL" },
 ];
 const pirateRounds = [
   { prompt: "Find the place with a tall brown trunk, no branches near the ground, and green leaves at the top.", seconds: 22, options: ["🌴 Palm tree", "🌳 Jungle tree", "🗼 Lighthouse", "🪨 Rocks"], answer: "🌴 Palm tree" },
@@ -136,7 +136,7 @@ export default function Home() {
   }, [active, audioPlayed, gameOver, lives, message, round, timeLeft]);
 
   function getOptions(id: GameId, index: number) {
-    const source = id === "jungle" ? jungleRounds[index].options : id === "temple" ? templeRounds[index].options : pirateRounds[index].options;
+    const source = id === "jungle" ? jungleRounds[index].options : id === "temple" ? [...templeRounds[index].words, ...templeRounds[index].distractors] : pirateRounds[index].options;
     return shuffled(source);
   }
   function openGame(id: GameId) { setActive(id); setRound(0); setPicked([]); setMessage(""); setRevealedClue(""); setLives(3); setJungleStage(0); setGameOver(false); setAudioPlayed(false); setAudioPlaysLeft(2); setTimeLeft(id === "jungle" ? 50 : id === "temple" ? templeRounds[0].seconds : id === "pirate" ? pirateRounds[0].seconds : 0); setOptions(getOptions(id, 0)); }
@@ -186,16 +186,26 @@ export default function Home() {
       }, 700);
     }
   }
-  function chooseAnswer(option: string, id: "temple" | "pirate") {
-    const data = id === "temple" ? templeRounds[round] : pirateRounds[round];
-    if (option === data.answer) {
-      if (id === "pirate") { setRevealedClue(data.prompt); setMessage("Correct! The clue is revealed below."); setTimeout(() => advance(id), 1450); }
-      else advance(id);
-    } else if (id === "temple") {
+  function chooseTempleWord(word: string) {
+    const data = templeRounds[round];
+    if (picked.includes(word) || gameOver) return;
+    const expected = data.words[picked.length];
+    if (word === expected) {
+      const next = [...picked, word];
+      setPicked(next);
+      setMessage(next.length === data.words.length ? "Spell complete — the altar is awakening!" : `The sphere “${word}” is locked in place.`);
+      if (next.length === data.words.length) setTimeout(() => advance("temple"), 850);
+    } else {
       const nextLives = lives - 1;
       setLives(nextLives);
-      setMessage(nextLives <= 0 ? "No lives left. The temple doors are sealed!" : "Wrong key — one life lost!");
+      setMessage(nextLives <= 0 ? "The spell collapsed. The temple doors are sealed!" : `Unstable sphere! You need “${expected}” next — one life lost.`);
       if (nextLives <= 0) setGameOver(true);
+    }
+  }
+  function chooseAnswer(option: string, id: "pirate") {
+    const data = pirateRounds[round];
+    if (option === data.answer) {
+      setRevealedClue(data.prompt); setMessage("Correct! The clue is revealed below."); setTimeout(() => advance(id), 1450);
     } else {
       const nextLives = lives - 1;
       setLives(nextLives);
@@ -212,8 +222,7 @@ export default function Home() {
   function speakTemple() {
     if (!("speechSynthesis" in window)) { setMessage("Audio is not supported in this browser."); return; }
     speechSynthesis.cancel();
-    const text = templeRounds[round].prompt.replace("___", "blank");
-    const utterance = new SpeechSynthesisUtterance(text); utterance.lang = "en-US"; utterance.rate = 0.82;
+    const utterance = new SpeechSynthesisUtterance(templeRounds[round].prompt); utterance.lang = "en-US"; utterance.rate = 0.82;
     speechSynthesis.speak(utterance);
   }
 
@@ -266,7 +275,7 @@ export default function Home() {
           <div className="game-content">
             {message === "Map piece found! ✦" ? <div className="victory"><div className={`earned-fragment ${active}`} aria-label={`${active} map fragment`} /><p>ADVENTURE COMPLETE</p><h3>Map piece found!</h3><p>{completed.length === 3 ? "The Lost Map is complete! Your progress will reset when the page is refreshed." : "This fragment has been added to the Lost Map."}</p><button className="play-button" onClick={returnToMap}>{completed.length === 3 ? "VIEW COMPLETE MAP" : "ADD TO THE MAP"} <span>›</span></button></div> : <>
               {active === "jungle" && gameOver ? <div className="game-over"><p className="mission">EXPEDITION PAUSED</p><h3>Try the word trail again</h3><p>Use the first letter of every picture and choose them in order.</p><button className="play-button" onClick={() => openGame("jungle")}>TRY AGAIN <span>›</span></button></div> : active === "jungle" && <><div className="jungle-hud"><span className="lives" aria-label={`${lives} lives remaining`}>{"❤️".repeat(lives)}{"♡".repeat(3 - lives)}</span><span>LEVEL {round + 1} / 6</span><span className={`timer ${timeLeft <= 5 ? "danger" : ""}`}>⏱ {timeLeft}s</span></div><p className="mission">BUILD THE WORD FOR THIS PICTURE</p><div className="word-builder-heading"><div className="target-picture" aria-label={`Target: ${jungleTarget.label}`}><span className={`atlas-${jungleTarget.atlas}`} style={{ backgroundImage: `url(${basePath}/word-builder-atlas-${jungleTarget.atlas}.png)`, backgroundPosition: jungleTarget.position }} /></div><div><h3>What is this?</h3><div className="word-progress" aria-label={`${picked.length} of ${jungleLevel.word.length} letters collected`}>{jungleLevel.word.split("").map((letter, index) => <span className={index < picked.length ? "revealed" : ""} key={`${letter}-${index}`}>{index < picked.length ? letter : "?"}</span>)}</div></div></div><p className="picture-instruction">Choose pictures in order. Use the first letter of each English word.</p><div className="jungle-picture-grid word-choice-grid">{jungleLevel.choices.map((pictureId) => { const picture = wordPictures[pictureId]; return <button key={picture.id} className={picked.includes(picture.id) ? "found" : ""} disabled={picked.includes(picture.id)} onClick={() => chooseJungle(picture.id)} aria-label={picture.label}><span className={`atlas-${picture.atlas}`} style={{ backgroundImage: `url(${basePath}/word-builder-atlas-${picture.atlas}.png)`, backgroundPosition: picture.position }} />{picked.includes(picture.id) && <small>{picture.label} · {picture.letter}</small>}</button>; })}</div></>}
-              {active === "temple" && gameOver ? <div className="game-over temple-over"><p className="mission">THE DOORS ARE SEALED</p><h3>Begin the grammar trials again</h3><p>Listen closely, watch the timer and protect your three lives.</p><button className="play-button" onClick={() => openGame("temple")}>TRY AGAIN <span>›</span></button></div> : active === "temple" && <><div className="jungle-hud temple-hud"><span className="lives" aria-label={`${lives} lives remaining`}>{"❤️".repeat(lives)}{"♡".repeat(3 - lives)}</span><span className={`timer ${timeLeft <= 5 ? "danger" : ""}`}>⏱ {timeLeft}s</span></div><p className="mission">{templeRounds[round].topic}</p><button className="listen temple-listen" onClick={speakTemple} aria-label="Listen to the sentence">🔊 LISTEN TO THE SENTENCE</button><h3>{templeRounds[round].prompt}</h3><div className={`answer-grid ${options.length > 4 ? "wide-options" : ""}`}>{options.map((option) => <button key={option} onClick={() => chooseAnswer(option, "temple")}>{option}</button>)}</div></>}
+              {active === "temple" && gameOver ? <div className="game-over temple-over"><p className="mission">THE SPELL COLLAPSED</p><h3>Restart the magical workshop</h3><p>Catch the word spheres in the correct order and protect your three lives.</p><button className="play-button" onClick={() => openGame("temple")}>TRY AGAIN <span>›</span></button></div> : active === "temple" && <><div className="jungle-hud temple-hud"><span className="lives" aria-label={`${lives} lives remaining`}>{"❤️".repeat(lives)}{"♡".repeat(3 - lives)}</span><span>CHAMBER {round + 1} / 6</span><span className={`timer ${timeLeft <= 5 ? "danger" : ""}`}>⏱ {timeLeft}s</span></div><p className="mission">MAGICAL WORKSHOP · {templeRounds[round].topic}</p><div className="spell-clue"><span>✦</span><div><small>CREATE A SPELL ABOUT</small><p>{templeRounds[round].clue}</p></div><button className="listen temple-listen" onClick={speakTemple} aria-label="Hear the complete spell">🔊 HEAR CLUE</button></div><div className={`temple-altar ${picked.length === templeRounds[round].words.length ? "activated" : ""}`}><div className="altar-runes">◇ ✦ ◇</div><div className="altar-slots">{templeRounds[round].words.map((word, index) => <span className={picked[index] ? "filled" : ""} key={`${word}-${index}`}>{picked[index] || "?"}</span>)}</div><div className="altar-base">THE SENTENCE ALTAR</div></div><p className="orb-instruction">Catch the spheres in the correct order</p><div className="magic-orbs">{options.map((option, index) => <button key={option} className={picked.includes(option) ? "captured" : ""} disabled={picked.includes(option)} style={{ animationDelay: `${index * -0.43}s` }} onClick={() => chooseTempleWord(option)}><span>{option}</span></button>)}</div></>}
               {active === "pirate" && gameOver ? <div className="game-over pirate-over"><p className="mission">THE TRAIL IS LOST</p><h3>Listen for the island clues again</h3><p>Use your two audio plays wisely and choose before time runs out.</p><button className="play-button" onClick={() => openGame("pirate")}>TRY AGAIN <span>›</span></button></div> : active === "pirate" && <><div className="jungle-hud pirate-hud"><span className="lives" aria-label={`${lives} lives remaining`}>{"❤️".repeat(lives)}{"♡".repeat(3 - lives)}</span><span className={`timer ${audioPlayed && timeLeft <= 5 ? "danger" : ""}`}>{audioPlayed ? `⏱ ${timeLeft}s` : "⏱ READY"}</span></div><p className="mission">LISTEN &amp; FIND</p><button className="listen audio-only" onClick={speak} disabled={audioPlaysLeft === 0}>🔊 {audioPlayed ? "PLAY CLUE AGAIN" : "PLAY AUDIO CLUE"} · {audioPlaysLeft} LEFT</button><p className="audio-instruction">{audioPlayed ? "Choose the matching landmark. The written clue stays hidden until you are correct." : "Play the clue to unlock the landmarks and start the timer."}</p><div className={`answer-grid pirate-options ${options.length > 4 ? "dense-pirate" : ""}`}>{options.map((option) => <button key={option} disabled={!audioPlayed} onClick={() => chooseAnswer(option, "pirate")}>{option}</button>)}</div>{revealedClue && <div className="revealed-clue"><small>CLUE REVEALED</small><p>{revealedClue}</p></div>}</>}
               {!gameOver && <div className="game-status"><span>{`${lives} lives`}</span><p aria-live="polite">{message || (active === "jungle" ? `Find a picture beginning with ${jungleLevel.word[picked.length]}` : active === "pirate" ? (audioPlayed ? "Choose the place from memory" : "Play the audio clue") : "Choose your answer")}</p><b>{active === "jungle" ? `${"◆".repeat(round)}${"◇".repeat(6 - round)}` : `${"◆".repeat(round)}${"◇".repeat(6 - round)}`}</b></div>}
             </>}
