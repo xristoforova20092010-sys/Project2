@@ -9,18 +9,24 @@ type Game = { id: GameId; number: string; title: string; subtitle: string; image
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
 const games: Game[] = [
-  { id: "jungle", number: "I", title: "Jungle Word Quest", subtitle: "Find the right pictures and conquer the jungle vocabulary trail.", image: `${basePath}/jungle-quest.png`, accent: "#42f5df", icon: "🌿", how: "Complete six missions. In each one, choose only the three objects from the named category to unlock the green map piece." },
+  { id: "jungle", number: "I", title: "Jungle Word Quest", subtitle: "Race the clock, protect your lives and master the jungle vocabulary trail.", image: `${basePath}/jungle-quest.png`, accent: "#42f5df", icon: "🌿", how: "Complete six timed missions with three lives. The number of choices grows in every round. Finish with a mixed-category jungle challenge to unlock the green map piece." },
   { id: "temple", number: "II", title: "Temple Grammar Trials", subtitle: "Solve grammar puzzles, open ancient doors and cross the bridge.", image: `${basePath}/temple-trials.png`, accent: "#ffc94b", icon: "🏛️", how: "Complete six sentences by choosing the correct grammar answer. Six opened doors reveal the golden map piece." },
   { id: "pirate", number: "III", title: "Pirate Island Mystery", subtitle: "Listen to clues, explore the island and discover the hidden treasure.", image: `${basePath}/pirate-island.png`, accent: "#4de8ff", icon: "⚓", how: "Listen carefully without reading the clue, then choose the matching landmark. The clue appears only after your choice. Six clues unlock the blue map piece." },
 ];
 
 const jungleRounds = [
-  { prompt: "Find all the FOOD", options: ["🍎 Apple", "🐯 Tiger", "🥪 Sandwich", "🪑 Chair", "🍌 Banana", "🚲 Bicycle"], correct: ["🍎 Apple", "🥪 Sandwich", "🍌 Banana"] },
-  { prompt: "Find all the ANIMALS", options: ["🐒 Monkey", "👕 Shirt", "🐘 Elephant", "📚 Books", "🦜 Parrot", "🛴 Scooter"], correct: ["🐒 Monkey", "🐘 Elephant", "🦜 Parrot"] },
-  { prompt: "Find all the SCHOOL OBJECTS", options: ["✏️ Pencil", "🌧️ Rain", "📓 Notebook", "⚽ Football", "🎒 Backpack", "🐟 Fish"], correct: ["✏️ Pencil", "📓 Notebook", "🎒 Backpack"] },
-  { prompt: "Find all the CLOTHES", options: ["🧥 Jacket", "🛏️ Bed", "👟 Shoes", "🍰 Cake", "🧢 Cap", "🚂 Train"], correct: ["🧥 Jacket", "👟 Shoes", "🧢 Cap"] },
-  { prompt: "Find all the TRANSPORT", options: ["🚌 Bus", "🦁 Lion", "✈️ Plane", "🧦 Socks", "🚲 Bicycle", "🥕 Carrot"], correct: ["🚌 Bus", "✈️ Plane", "🚲 Bicycle"] },
-  { prompt: "Find all the FURNITURE", options: ["🪑 Chair", "🌂 Umbrella", "🛋️ Sofa", "🐬 Dolphin", "🛏️ Bed", "🍉 Watermelon"], correct: ["🪑 Chair", "🛋️ Sofa", "🛏️ Bed"] },
+  { prompt: "Find all the FOOD", seconds: 22, options: ["🍎 Apple", "🐯 Tiger", "🥪 Sandwich", "🪑 Chair", "🍌 Banana", "🚲 Bicycle"], correct: ["🍎 Apple", "🥪 Sandwich", "🍌 Banana"] },
+  { prompt: "Find all the ANIMALS", seconds: 20, options: ["🐒 Monkey", "👕 Shirt", "🐘 Elephant", "📚 Books", "🦜 Parrot", "🛴 Scooter", "🐬 Dolphin"], correct: ["🐒 Monkey", "🐘 Elephant", "🦜 Parrot", "🐬 Dolphin"] },
+  { prompt: "Find all the SCHOOL OBJECTS", seconds: 18, options: ["✏️ Pencil", "🌧️ Rain", "📓 Notebook", "⚽ Football", "🎒 Backpack", "🐟 Fish", "📏 Ruler", "🚌 Bus"], correct: ["✏️ Pencil", "📓 Notebook", "🎒 Backpack", "📏 Ruler"] },
+  { prompt: "Find all the CLOTHES", seconds: 16, options: ["🧥 Jacket", "🛏️ Bed", "👟 Shoes", "🍰 Cake", "🧢 Cap", "🚂 Train", "🧦 Socks", "🧣 Scarf", "🪑 Chair"], correct: ["🧥 Jacket", "👟 Shoes", "🧢 Cap", "🧦 Socks", "🧣 Scarf"] },
+  { prompt: "Find all the TRANSPORT", seconds: 14, options: ["🚌 Bus", "🦁 Lion", "✈️ Plane", "🧦 Socks", "🚲 Bicycle", "🥕 Carrot", "🚂 Train", "🛴 Scooter", "⛵ Ship", "🛣️ Road"], correct: ["🚌 Bus", "✈️ Plane", "🚲 Bicycle", "🚂 Train", "🛴 Scooter", "⛵ Ship"] },
+  { prompt: "FINAL MIXED CHALLENGE", seconds: 30, options: ["🍎 Apple", "🐒 Monkey", "✏️ Pencil", "🧥 Jacket", "🚌 Bus", "🍌 Banana", "🦜 Parrot", "🎒 Backpack", "👟 Shoes", "✈️ Plane", "🪑 Chair", "🍰 Cake"], correct: [] },
+];
+
+const jungleFinalStages = [
+  { prompt: "First: find all the FOOD", correct: ["🍎 Apple", "🍌 Banana", "🍰 Cake"] },
+  { prompt: "Next: find all the ANIMALS", correct: ["🐒 Monkey", "🦜 Parrot"] },
+  { prompt: "Finally: find all the SCHOOL OBJECTS", correct: ["✏️ Pencil", "🎒 Backpack"] },
 ];
 const templeRounds = [
   { prompt: "Tom ___ football every Saturday.", options: ["play", "plays", "playing"], answer: "plays" },
@@ -57,10 +63,14 @@ export default function Home() {
   const [message, setMessage] = useState("");
   const [options, setOptions] = useState<string[]>([]);
   const [revealedClue, setRevealedClue] = useState("");
+  const [lives, setLives] = useState(3);
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [jungleStage, setJungleStage] = useState(0);
+  const [gameOver, setGameOver] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem("english-adventure-progress");
-    if (saved) setCompleted(JSON.parse(saved));
+    if (saved) window.setTimeout(() => setCompleted(JSON.parse(saved)), 0);
     if (sessionStorage.getItem("english-adventure-show-map") === "yes") {
       sessionStorage.removeItem("english-adventure-show-map");
       window.setTimeout(() => document.getElementById("journey")?.scrollIntoView({ behavior: "smooth", block: "center" }), 250);
@@ -69,11 +79,35 @@ export default function Home() {
 
   const game = useMemo(() => games.find((item) => item.id === active), [active]);
 
+  useEffect(() => {
+    if (active !== "jungle" || gameOver || message.includes("Map piece found")) return;
+    const timer = window.setInterval(() => setTimeLeft((current) => Math.max(0, current - 1)), 1000);
+    return () => window.clearInterval(timer);
+  }, [active, gameOver, message, round]);
+
+  useEffect(() => {
+    if (active !== "jungle" || gameOver || timeLeft !== 0 || message.includes("Map piece found")) return;
+    const timeout = window.setTimeout(() => {
+      const nextLives = lives - 1;
+      setLives(nextLives);
+      setPicked([]);
+      if (nextLives <= 0) {
+        setGameOver(true);
+        setMessage("Time is up. The jungle wins this time!");
+      } else {
+        setMessage("Time is up — one life lost. Try this mission again!");
+        setTimeLeft(jungleRounds[round].seconds);
+        window.setTimeout(() => setMessage(""), 1200);
+      }
+    }, 0);
+    return () => window.clearTimeout(timeout);
+  }, [active, gameOver, lives, message, round, timeLeft]);
+
   function getOptions(id: GameId, index: number) {
     const source = id === "jungle" ? jungleRounds[index].options : id === "temple" ? templeRounds[index].options : pirateRounds[index].options;
     return shuffled(source);
   }
-  function openGame(id: GameId) { setActive(id); setRound(0); setPicked([]); setMessage(""); setRevealedClue(""); setOptions(getOptions(id, 0)); }
+  function openGame(id: GameId) { setActive(id); setRound(0); setPicked([]); setMessage(""); setRevealedClue(""); setLives(3); setJungleStage(0); setGameOver(false); setTimeLeft(id === "jungle" ? jungleRounds[0].seconds : 0); setOptions(getOptions(id, 0)); }
   function closeGame() { setActive(null); setRound(0); setPicked([]); setMessage(""); setRevealedClue(""); }
   function returnToMap() {
     if (completed.length === 3) {
@@ -94,15 +128,27 @@ export default function Home() {
   function advance(id: GameId) {
     if (round === 5) finish(id); else {
       const nextRound = round + 1;
-      setRound(nextRound); setPicked([]); setRevealedClue(""); setOptions(getOptions(id, nextRound));
+      setRound(nextRound); setPicked([]); setRevealedClue(""); setJungleStage(0); setOptions(getOptions(id, nextRound));
+      if (id === "jungle") setTimeLeft(jungleRounds[nextRound].seconds);
       setMessage("Correct! The path opens…"); setTimeout(() => setMessage(""), 900);
     }
   }
   function chooseJungle(option: string) {
     const data = jungleRounds[round];
-    if (!data.correct.includes(option)) { setMessage("Not this one — try again!"); return; }
+    const correct = round === 5 ? jungleFinalStages[jungleStage].correct : data.correct;
+    if (!correct.includes(option)) {
+      const nextLives = lives - 1;
+      setLives(nextLives);
+      setMessage(nextLives <= 0 ? "No lives left. The jungle wins this time!" : "Wrong choice — one life lost!");
+      if (nextLives <= 0) setGameOver(true);
+      return;
+    }
     const next = [...picked, option]; setPicked(next); setMessage("Great find!");
-    if (next.length === data.correct.length) setTimeout(() => advance("jungle"), 450);
+    if (next.length === correct.length) {
+      if (round === 5 && jungleStage < jungleFinalStages.length - 1) {
+        setTimeout(() => { setJungleStage((stage) => stage + 1); setPicked([]); setMessage("Category cleared — keep going!"); }, 400);
+      } else setTimeout(() => advance("jungle"), 450);
+    }
   }
   function chooseAnswer(option: string, id: "temple" | "pirate") {
     const data = id === "temple" ? templeRounds[round] : pirateRounds[round];
@@ -165,10 +211,10 @@ export default function Home() {
           <div className="game-banner"><Image src={game.image} alt="" fill sizes="800px" /><div /><button className="close" onClick={closeGame} aria-label="Close game">×</button><p>CHAPTER {game.number} · TRIAL {Math.min(round + 1, 6)} / 6</p><h2>{game.title}</h2></div>
           <div className="game-content">
             {message === "Map piece found! ✦" ? <div className="victory"><div className={`earned-fragment ${active}`} aria-label={`${active} map fragment`} /><p>ADVENTURE COMPLETE</p><h3>Map piece found!</h3><p>{completed.length === 3 ? "All fragments are ready. Watch them join before the site refreshes." : "This fragment has been added to the Lost Map."}</p><button className="play-button" onClick={returnToMap}>{completed.length === 3 ? "ASSEMBLE THE MAP" : "ADD TO THE MAP"} <span>›</span></button></div> : <>
-              {active === "jungle" && <><p className="mission">MISSION</p><h3>{jungleRounds[round].prompt}</h3><div className="answer-grid picture-grid">{options.map((option) => <button key={option} className={picked.includes(option) ? "selected" : ""} disabled={picked.includes(option)} onClick={() => chooseJungle(option)}>{option}</button>)}</div></>}
+              {active === "jungle" && gameOver ? <div className="game-over"><p className="mission">EXPEDITION PAUSED</p><h3>Try the jungle trail again</h3><p>Choose carefully and keep an eye on the timer.</p><button className="play-button" onClick={() => openGame("jungle")}>TRY AGAIN <span>›</span></button></div> : active === "jungle" && <><div className="jungle-hud"><span className="lives" aria-label={`${lives} lives remaining`}>{"❤️".repeat(lives)}{"♡".repeat(3 - lives)}</span><span className={`timer ${timeLeft <= 5 ? "danger" : ""}`}>⏱ {timeLeft}s</span></div><p className="mission">{round === 5 ? `FINAL · STEP ${jungleStage + 1} / 3` : "MISSION"}</p><h3>{round === 5 ? jungleFinalStages[jungleStage].prompt : jungleRounds[round].prompt}</h3><div className={`answer-grid picture-grid ${options.length > 8 ? "dense" : ""}`}>{options.map((option) => <button key={option} className={picked.includes(option) ? "selected" : ""} disabled={picked.includes(option)} onClick={() => chooseJungle(option)}>{option}</button>)}</div></>}
               {active === "temple" && <><p className="mission">CHOOSE THE KEY</p><h3>{templeRounds[round].prompt}</h3><div className="answer-grid">{options.map((option) => <button key={option} onClick={() => chooseAnswer(option, "temple")}>{option}</button>)}</div></>}
               {active === "pirate" && <><p className="mission">LISTEN &amp; FIND</p><button className="listen audio-only" onClick={speak}>🔊 PLAY AUDIO CLUE</button><p className="audio-instruction">Listen carefully, then choose the correct place.</p><div className="answer-grid">{options.map((option) => <button key={option} onClick={() => chooseAnswer(option, "pirate")}>{option}</button>)}</div>{revealedClue && <div className="revealed-clue"><small>CLUE REVEALED</small><p>{revealedClue}</p></div>}</>}
-              <div className="game-status"><span>❤️ ❤️ ❤️</span><p aria-live="polite">{message || (active === "pirate" ? "Play the clue and choose a place" : "Choose your answer")}</p><b>{"◆".repeat(round)}{"◇".repeat(6 - round)}</b></div>
+              {!gameOver && <div className="game-status"><span>{active === "jungle" ? `${lives} lives` : "3 lives"}</span><p aria-live="polite">{message || (active === "pirate" ? "Play the clue and choose a place" : "Choose your answer")}</p><b>{"◆".repeat(round)}{"◇".repeat(6 - round)}</b></div>}
             </>}
           </div>
         </div>
