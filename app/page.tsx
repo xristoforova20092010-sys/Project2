@@ -143,6 +143,7 @@ export default function Home() {
   const game = useMemo(() => games.find((item) => item.id === active), [active]);
   const jungleLevel = jungleWordLevels[Math.min(round, jungleWordLevels.length - 1)];
   const jungleGrid = useMemo(() => makeFillword(jungleLevel), [jungleLevel]);
+  const jungleWordBank = useMemo(() => shuffled(jungleLevel.words), [jungleLevel]);
 
   useEffect(() => {
     if ((active !== "temple" && active !== "pirate") || (active === "pirate" && !audioPlayed) || gameOver || message.includes("Map piece found")) return;
@@ -389,7 +390,7 @@ export default function Home() {
                   <div className="fillword-board" style={{ gridTemplateColumns: `repeat(${jungleLevel.size}, 1fr)`, "--field-size": jungleLevel.size } as React.CSSProperties}>
                     {jungleGrid.map((letter, index) => <button key={index} className={`${picked.includes(String(index)) ? "selected" : ""} ${foundWords.some((word) => { let offset = 0; for (const item of jungleLevel.words) { const start = offset; offset += item.length; if (item === word) { const order = makeFillwordPath(jungleLevel).indexOf(index); return order >= start && order < offset; } } return false; }) ? "solved" : ""}`} onClick={() => chooseJungle(index)} aria-label={`Letter ${letter}`}>{letter}</button>)}
                   </div>
-                  <div className="word-bank"><small>FIND THESE WORDS</small><div>{jungleLevel.words.map((word) => <span className={foundWords.includes(word) ? "found" : ""} key={word}>{foundWords.includes(word) ? "✓ " : ""}{word}</span>)}</div></div>
+                  <div className="word-bank"><small>FIND THESE WORDS</small><div>{jungleWordBank.map((word) => <span className={foundWords.includes(word) ? "found" : ""} key={word}>{foundWords.includes(word) ? "✓ " : ""}{word}</span>)}</div></div>
                 </div>
                 <p className="selection-readout" aria-live="polite">{message || "Choose the first letter of any word"}</p>
                 {levelReward && <div className="level-reward"><div className="reward-rays" /><span className="reward-icon">{round === 5 ? "👑" : round % 2 ? "🪙" : "🏆"}</span><small>LEVEL COMPLETE!</small><h3>{levelReward}</h3><p>Your prize has been added to the explorer&apos;s collection.</p><button className="play-button" onClick={nextJungleLevel}>{round === 5 ? "CLAIM MAP PIECE" : `CONTINUE TO LEVEL ${round + 2}`} <span>›</span></button></div>}
