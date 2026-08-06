@@ -210,6 +210,16 @@ export default function Home() {
     playTone(440 + (jungleGrid[cellIndex].charCodeAt(0) - 65) * 18);
     const id = String(cellIndex);
     if (picked[picked.length - 1] === id) { setPicked(picked.slice(0, -1)); setMessage("One letter removed."); return; }
+    if (picked.length) {
+      const previous = Number(picked[picked.length - 1]);
+      const rowDistance = Math.abs(Math.floor(previous / jungleLevel.size) - Math.floor(cellIndex / jungleLevel.size));
+      const columnDistance = Math.abs(previous % jungleLevel.size - cellIndex % jungleLevel.size);
+      if (rowDistance + columnDistance !== 1) {
+        setMessage("No diagonal moves — choose a tile directly above, below, left or right.");
+        playTone(180, 0.16);
+        return;
+      }
+    }
     const snake = makeFillwordPath(jungleLevel);
     let offset = 0;
     const segments = jungleLevel.words.map((word) => { const cells = snake.slice(offset, offset + word.length); offset += word.length; return { word, cells }; });
@@ -374,7 +384,7 @@ export default function Home() {
               {active === "jungle" && <div className="fillword-game">
                 <div className="fillword-hud"><span className="level-pill">LEVEL {round + 1} / 6</span><div className="level-track"><i style={{ width: `${((round + 1) / 6) * 100}%` }} /></div><span className="coin-pill">★ {foundWords.length}/{jungleLevel.words.length}</span></div>
                 <div className="theme-heading"><span>{jungleLevel.icon}</span><div><small>WORD THEME</small><h3>{jungleLevel.theme}</h3></div></div>
-                <p className="fillword-instruction">Click letters in order. Every next tile must touch the previous one.</p>
+                <p className="fillword-instruction">Click letters in order. Move only ↑ ↓ ← →. <strong>NO DIAGONAL MOVES.</strong></p>
                 <div className="fillword-layout">
                   <div className="fillword-board" style={{ gridTemplateColumns: `repeat(${jungleLevel.size}, 1fr)`, "--field-size": jungleLevel.size } as React.CSSProperties}>
                     {jungleGrid.map((letter, index) => <button key={index} className={`${picked.includes(String(index)) ? "selected" : ""} ${foundWords.some((word) => { let offset = 0; for (const item of jungleLevel.words) { const start = offset; offset += item.length; if (item === word) { const order = makeFillwordPath(jungleLevel).indexOf(index); return order >= start && order < offset; } } return false; }) ? "solved" : ""}`} onClick={() => chooseJungle(index)} aria-label={`Letter ${letter}`}>{letter}</button>)}
