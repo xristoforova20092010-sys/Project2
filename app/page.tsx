@@ -150,10 +150,10 @@ export default function Home() {
       if (active !== "pirate") setPicked([]);
       if (nextLives <= 0) {
         setGameOver(true);
-        setMessage(active === "jungle" ? "Time is up. The jungle wins this time!" : active === "temple" ? "Time is up. The temple doors are sealed!" : "Time is up. The treasure trail is lost!");
+        setMessage(active === "temple" ? "Time is up. The temple doors are sealed!" : "Time is up. The treasure trail is lost!");
       } else {
         setMessage("Time is up — one life lost. Try this trial again!");
-        setTimeLeft(active === "jungle" ? 50 : active === "temple" ? templeRounds[round].seconds : hiddenItems[round].seconds);
+        setTimeLeft(active === "temple" ? templeRounds[round].seconds : hiddenItems[round].seconds);
         window.setTimeout(() => setMessage(""), 1200);
       }
     }, 0);
