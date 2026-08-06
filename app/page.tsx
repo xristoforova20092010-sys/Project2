@@ -71,7 +71,9 @@ function makeFillword(level: FillwordLevel) {
 }
 
 function makeFillwordPath(level: FillwordLevel) {
-  if (level.size === 3) return [...Array(9).keys()];
+  // The beginner board still teaches real fillword movement: two words turn
+  // a corner and the third runs vertically between them.
+  if (level.size === 3) return [0, 1, 4, 2, 5, 8, 3, 6, 7];
   const path: number[] = [];
   for (let row = 0; row < level.size; row++) {
     const columns = row % 2 === 0 ? [...Array(level.size).keys()] : [...Array(level.size).keys()].reverse();
