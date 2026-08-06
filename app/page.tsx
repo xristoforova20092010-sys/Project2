@@ -71,15 +71,15 @@ function makeFillword(level: FillwordLevel) {
 }
 
 function makeFillwordPath(level: FillwordLevel) {
-  // The beginner board still teaches real fillword movement: two words turn
-  // a corner and the third runs vertically between them.
-  if (level.size === 3) return [0, 1, 4, 2, 5, 8, 3, 6, 7];
-  const path: number[] = [];
-  for (let row = 0; row < level.size; row++) {
-    const columns = row % 2 === 0 ? [...Array(level.size).keys()] : [...Array(level.size).keys()].reverse();
-    columns.forEach((column) => path.push(row * level.size + column));
-  }
-  return path;
+  const windingPaths: Record<number, number[]> = {
+    3: [0, 1, 3, 6, 7, 5, 8, 4, 2],
+    4: [0, 1, 4, 8, 13, 12, 9, 5, 2, 3, 7, 6, 10, 11, 15, 14],
+    5: [0, 1, 5, 10, 6, 11, 15, 20, 21, 16, 22, 23, 17, 12, 13, 19, 24, 18, 14, 9, 8, 4, 3, 7, 2],
+    6: [0, 1, 6, 12, 7, 13, 18, 24, 31, 30, 25, 19, 20, 26, 33, 32, 27, 34, 35, 29, 28, 23, 22, 17, 11, 16, 15, 21, 14, 8, 9, 2, 3, 10, 4, 5],
+    7: [0, 1, 7, 14, 8, 15, 21, 28, 22, 29, 35, 42, 43, 36, 44, 45, 37, 30, 38, 31, 23, 16, 24, 17, 9, 2, 3, 10, 4, 5, 11, 18, 12, 20, 26, 25, 32, 33, 39, 46, 47, 41, 48, 40, 34, 27, 19, 13, 6],
+    8: [0, 1, 8, 16, 9, 17, 24, 32, 25, 33, 40, 48, 57, 56, 49, 41, 42, 50, 59, 58, 51, 60, 61, 52, 53, 62, 63, 55, 54, 47, 46, 39, 31, 38, 30, 23, 15, 22, 14, 7, 6, 13, 5, 4, 12, 21, 29, 20, 28, 37, 45, 44, 36, 43, 35, 34, 26, 27, 19, 18, 10, 11, 3, 2],
+  };
+  return windingPaths[level.size];
 }
 const templeRounds = [
   { prompt: "Tom plays football every Saturday.", clue: "Tom  •  football  •  every Saturday", seconds: 38, words: ["Tom", "plays", "football", "every Saturday"], distractors: ["play", "is playing", "yesterday"], topic: "PRESENT SIMPLE" },
