@@ -9,7 +9,7 @@ type Game = { id: GameId; number: string; title: string; subtitle: string; image
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
 const games: Game[] = [
-  { id: "jungle", number: "I", title: "Picture Word Builder", subtitle: "Use the first letter of each picture to build six hidden English words.", image: `${basePath}/jungle-quest.png`, accent: "#42f5df", icon: "🌿", how: "Look at the large target picture. Then choose smaller pictures in the correct order: the first letter of each picture must form the target word. Complete all six levels before time or lives run out to earn the green map piece." },
+  { id: "jungle", number: "I", title: "English Word Hunt", subtitle: "Find themed English words across six growing letter fields.", image: `${basePath}/jungle-quest.png`, accent: "#42f5df", icon: "🔤", how: "Click adjacent letters to spell every word in the list. Each level has a new theme and a larger field. Click the selected letter again to undo. Clear all six levels to collect every prize and the green map piece." },
   { id: "temple", number: "II", title: "Temple Grammar Trials", subtitle: "Listen, race the clock and solve increasingly difficult grammar puzzles.", image: `${basePath}/temple-trials.png`, accent: "#ffc94b", icon: "🏛️", how: "Complete six timed grammar trials with three lives. Listen to every sentence, choose the missing words and open all six temple doors to reveal the golden map piece." },
   { id: "pirate", number: "III", title: "Pirate Island Mystery", subtitle: "Listen carefully and find eight hidden objects inside one mysterious island scene.", image: `${basePath}/pirate-island.png`, accent: "#4de8ff", icon: "⚓", how: "Play the English audio mission, then search the large pirate island picture and click the named object. Find all eight hidden treasures. You may replay each clue three times, but wrong clicks cost one of your five lives." },
 ];
@@ -52,14 +52,27 @@ const wordPictures: Record<string, WordPicture> = {
   house: { id: "house", label: "House", letter: "H", atlas: "b", position: "66.666% 100%" },
   frog: { id: "frog", label: "Frog", letter: "F", atlas: "b", position: "100% 100%" },
 };
-const jungleWordLevels = [
-  { word: "LION", target: "lion", choices: ["apple", "lamp", "frog", "icecream", "key", "owl", "bus", "nest"] },
-  { word: "FROG", target: "frog", choices: ["lion", "frogA", "apple", "rabbit", "tiger", "owl", "key", "gift"] },
-  { word: "TIGER", target: "tiger", choices: ["train", "apple", "icecream", "frogA", "gift", "elephant", "owl", "rabbit"] },
-  { word: "APPLE", target: "apple", choices: ["bus", "apple", "panda", "frogA", "pizza", "lamp", "hat", "elephant"] },
-  { word: "HOUSE", target: "house", choices: ["frogA", "hat", "key", "owl", "panda", "umbrella", "sun", "elephant"] },
-  { word: "TRAIN", target: "train", choices: ["tiger", "frogA", "rabbit", "key", "apple", "elephant", "icecream", "nest"] },
+type FillwordLevel = { size: number; theme: string; icon: string; words: string[]; reward: string };
+const jungleWordLevels: FillwordLevel[] = [
+  { size: 3, theme: "Farm Animals", icon: "🐾", words: ["CAT", "DOG", "HEN"], reward: "Bronze Paw Badge" },
+  { size: 4, theme: "Wild Animals", icon: "🦁", words: ["LION", "BEAR", "FROG", "DUCK"], reward: "50 Explorer Coins" },
+  { size: 5, theme: "Fruit", icon: "🍎", words: ["APPLE", "GRAPE", "LEMON", "PEACH", "MELON"], reward: "Golden Apple Trophy" },
+  { size: 6, theme: "Space", icon: "🪐", words: ["EARTH", "MARS", "VENUS", "SATURN", "NEPTUNE", "URANUS", "SUN"], reward: "Star Explorer Badge" },
+  { size: 7, theme: "School", icon: "🎒", words: ["PENCIL", "RULER", "BOOK", "ERASER", "SCHOOL", "TEACHER", "LESSON", "MAP", "PEN", "BAG"], reward: "100 Explorer Coins" },
+  { size: 8, theme: "Nature", icon: "🌿", words: ["RIVER", "OCEAN", "FOREST", "JUNGLE", "FLOWER", "MOUNTAIN", "RAIN", "CLOUD", "STORM", "THUNDER", "SUN", "TREE"], reward: "Legendary Jungle Crown" },
 ];
+
+function makeFillword(level: FillwordLevel) {
+  const letters = level.words.join("").split("");
+  const grid = Array.from({ length: level.size }, () => Array(level.size).fill(""));
+  const path: number[] = [];
+  for (let row = 0; row < level.size; row++) {
+    const columns = row % 2 === 0 ? [...Array(level.size).keys()] : [...Array(level.size).keys()].reverse();
+    columns.forEach((column) => path.push(row * level.size + column));
+  }
+  path.forEach((cell, index) => { grid[Math.floor(cell / level.size)][cell % level.size] = letters[index]; });
+  return grid.flat();
+}
 const templeRounds = [
   { prompt: "Tom plays football every Saturday.", clue: "Tom  •  football  •  every Saturday", seconds: 38, words: ["Tom", "plays", "football", "every Saturday"], distractors: ["play", "is playing", "yesterday"], topic: "PRESENT SIMPLE" },
   { prompt: "There are two parrots in the ancient tree.", clue: "two parrots  •  ancient tree", seconds: 38, words: ["There", "are", "two parrots", "in the ancient tree"], distractors: ["is", "was", "be"], topic: "THERE IS / ARE" },
@@ -111,6 +124,8 @@ export default function Home() {
   const [gameOver, setGameOver] = useState(false);
   const [audioPlayed, setAudioPlayed] = useState(false);
   const [audioPlaysLeft, setAudioPlaysLeft] = useState(2);
+  const [foundWords, setFoundWords] = useState<string[]>([]);
+  const [levelReward, setLevelReward] = useState<string | null>(null);
 
   useEffect(() => {
     localStorage.removeItem("english-adventure-progress");
@@ -119,16 +134,16 @@ export default function Home() {
 
   const game = useMemo(() => games.find((item) => item.id === active), [active]);
   const jungleLevel = jungleWordLevels[Math.min(round, jungleWordLevels.length - 1)];
-  const jungleTarget = wordPictures[jungleLevel.target];
+  const jungleGrid = useMemo(() => makeFillword(jungleLevel), [jungleLevel]);
 
   useEffect(() => {
-    if ((active !== "jungle" && active !== "temple" && active !== "pirate") || (active === "pirate" && !audioPlayed) || gameOver || message.includes("Map piece found")) return;
+    if ((active !== "temple" && active !== "pirate") || (active === "pirate" && !audioPlayed) || gameOver || message.includes("Map piece found")) return;
     const timer = window.setInterval(() => setTimeLeft((current) => Math.max(0, current - 1)), 1000);
     return () => window.clearInterval(timer);
   }, [active, audioPlayed, gameOver, message, round]);
 
   useEffect(() => {
-    if ((active !== "jungle" && active !== "temple" && active !== "pirate") || (active === "pirate" && !audioPlayed) || gameOver || timeLeft !== 0 || message.includes("Map piece found")) return;
+    if ((active !== "temple" && active !== "pirate") || (active === "pirate" && !audioPlayed) || gameOver || timeLeft !== 0 || message.includes("Map piece found")) return;
     const timeout = window.setTimeout(() => {
       const nextLives = lives - 1;
       setLives(nextLives);
@@ -149,7 +164,7 @@ export default function Home() {
     const source = id === "jungle" ? jungleRounds[index].options : id === "temple" ? [...templeRounds[index].words, ...templeRounds[index].distractors] : pirateRounds[index].options;
     return shuffled(source);
   }
-  function openGame(id: GameId) { setActive(id); setRound(0); setPicked([]); setMessage(""); setRevealedClue(""); setLives(id === "pirate" ? 5 : 3); setJungleStage(0); setGameOver(false); setAudioPlayed(false); setAudioPlaysLeft(id === "pirate" ? 3 : 2); setTimeLeft(id === "jungle" ? 50 : id === "temple" ? templeRounds[0].seconds : id === "pirate" ? hiddenItems[0].seconds : 0); setOptions(getOptions(id, 0)); }
+  function openGame(id: GameId) { setActive(id); setRound(0); setPicked([]); setFoundWords([]); setLevelReward(null); setMessage(""); setRevealedClue(""); setLives(id === "pirate" ? 5 : 3); setJungleStage(0); setGameOver(false); setAudioPlayed(false); setAudioPlaysLeft(id === "pirate" ? 3 : 2); setTimeLeft(id === "temple" ? templeRounds[0].seconds : id === "pirate" ? hiddenItems[0].seconds : 0); setOptions(getOptions(id, 0)); }
   function closeGame() { setActive(null); setRound(0); setPicked([]); setMessage(""); setRevealedClue(""); }
   function returnToMap() {
     closeGame();
@@ -170,31 +185,49 @@ export default function Home() {
       setMessage("Correct! The path opens…"); setTimeout(() => setMessage(""), 900);
     }
   }
-  function chooseJungle(tileId: string) {
-    const picture = wordPictures[tileId];
-    const level = jungleWordLevels[round];
-    if (!picture || picked.includes(tileId) || gameOver) return;
-    const expectedLetter = level.word[picked.length];
-    if (picture.letter !== expectedLetter) {
-      const nextLives = lives - 1;
-      setLives(nextLives);
-      setMessage(nextLives <= 0 ? "No lives left. The jungle wins this time!" : `${picture.label} starts with ${picture.letter}, but you need ${expectedLetter} — one life lost!`);
-      if (nextLives <= 0) setGameOver(true);
-      return;
+  function playTone(frequency = 520, duration = 0.1) {
+    const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const context = new AudioContextClass();
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.type = "sine"; oscillator.frequency.value = frequency;
+    gain.gain.setValueAtTime(0.12, context.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + duration);
+    oscillator.connect(gain); gain.connect(context.destination); oscillator.start(); oscillator.stop(context.currentTime + duration);
+    window.setTimeout(() => void context.close(), duration * 1000 + 80);
+  }
+  function chooseJungle(cellIndex: number) {
+    if (gameOver || foundWords.length === jungleLevel.words.length || levelReward) return;
+    playTone(440 + (jungleGrid[cellIndex].charCodeAt(0) - 65) * 18);
+    const id = String(cellIndex);
+    if (picked[picked.length - 1] === id) { setPicked(picked.slice(0, -1)); setMessage("One letter removed."); return; }
+    const snake: number[] = [];
+    for (let row = 0; row < jungleLevel.size; row++) {
+      const columns = row % 2 === 0 ? [...Array(jungleLevel.size).keys()] : [...Array(jungleLevel.size).keys()].reverse();
+      columns.forEach((column) => snake.push(row * jungleLevel.size + column));
     }
-    const next = [...picked, tileId];
+    let offset = 0;
+    const segments = jungleLevel.words.map((word) => { const cells = snake.slice(offset, offset + word.length); offset += word.length; return { word, cells }; });
+    const activeSegment = picked.length ? segments.find(({ cells }) => cells[0] === Number(picked[0])) : segments.find(({ word, cells }) => !foundWords.includes(word) && cells[0] === cellIndex);
+    if (!activeSegment || activeSegment.cells[picked.length] !== cellIndex) {
+      setPicked([]); setMessage("Start at the first letter of a word and follow touching tiles."); return;
+    }
+    const next = [...picked, id];
     setPicked(next);
-    setMessage(`${picture.label} gives you the letter ${picture.letter}!`);
-    if (next.length === level.word.length) {
-      if (round === jungleWordLevels.length - 1) setTimeout(() => finish("jungle"), 700);
-      else setTimeout(() => {
-        setRound((current) => current + 1);
-        setPicked([]);
-        setTimeLeft(50);
-        setMessage("Word complete! Next picture unlocked.");
-        window.setTimeout(() => setMessage(""), 1000);
-      }, 700);
-    }
+    if (next.length === activeSegment.word.length) {
+      const newlyFound = [...foundWords, activeSegment.word];
+      setFoundWords(newlyFound); setPicked([]); setMessage(`${activeSegment.word} found!`); playTone(880, 0.22);
+      if (newlyFound.length === jungleLevel.words.length) {
+        playTempleVictory();
+        window.setTimeout(() => setLevelReward(jungleLevel.reward), 450);
+      }
+    } else setMessage(next.map((cell) => jungleGrid[Number(cell)]).join(""));
+  }
+  function nextJungleLevel() {
+    setLevelReward(null); setPicked([]); setFoundWords([]); setMessage("");
+    if (round === jungleWordLevels.length - 1) finish("jungle");
+    else setRound((current) => current + 1);
   }
   function chooseTempleWord(word: string) {
     const data = templeRounds[round];
@@ -334,10 +367,22 @@ export default function Home() {
           <div className="game-banner"><Image src={game.image} alt="" fill sizes="800px" /><div /><button className="close" onClick={closeGame} aria-label="Close game">×</button><p>CHAPTER {game.number} · {active === "jungle" ? `LEVEL ${round + 1} / ${jungleWordLevels.length}` : active === "pirate" ? `OBJECT ${round + 1} / ${hiddenItems.length}` : `TRIAL ${Math.min(round + 1, 6)} / 6`}</p><h2>{game.title}</h2></div>
           <div className="game-content">
             {message === "Map piece found! ✦" ? <div className="victory"><div className={`earned-fragment ${active}`} aria-label={`${active} map fragment`} /><p>ADVENTURE COMPLETE</p><h3>Map piece found!</h3><p>{completed.length === 3 ? "The Lost Map is complete! Your progress will reset when the page is refreshed." : "This fragment has been added to the Lost Map."}</p><button className="play-button" onClick={returnToMap}>{completed.length === 3 ? "VIEW COMPLETE MAP" : "ADD TO THE MAP"} <span>›</span></button></div> : <>
-              {active === "jungle" && gameOver ? <div className="game-over"><p className="mission">EXPEDITION PAUSED</p><h3>Try the word trail again</h3><p>Use the first letter of every picture and choose them in order.</p><button className="play-button" onClick={() => openGame("jungle")}>TRY AGAIN <span>›</span></button></div> : active === "jungle" && <><div className="jungle-hud"><span className="lives" aria-label={`${lives} lives remaining`}>{"❤️".repeat(lives)}{"♡".repeat(3 - lives)}</span><span>LEVEL {round + 1} / 6</span><span className={`timer ${timeLeft <= 5 ? "danger" : ""}`}>⏱ {timeLeft}s</span></div><p className="mission">BUILD THE WORD FOR THIS PICTURE</p><div className="word-builder-heading"><div className="target-picture" aria-label={`Target: ${jungleTarget.label}`}><span className={`atlas-${jungleTarget.atlas}`} style={{ backgroundImage: `url(${basePath}/word-builder-atlas-${jungleTarget.atlas}.png)`, backgroundPosition: jungleTarget.position }} /></div><div><h3>What is this?</h3><div className="word-progress" aria-label={`${picked.length} of ${jungleLevel.word.length} letters collected`}>{jungleLevel.word.split("").map((letter, index) => <span className={index < picked.length ? "revealed" : ""} key={`${letter}-${index}`}>{index < picked.length ? letter : "?"}</span>)}</div></div></div><p className="picture-instruction">Choose pictures in order. Use the first letter of each English word.</p><div className="jungle-picture-grid word-choice-grid">{jungleLevel.choices.map((pictureId) => { const picture = wordPictures[pictureId]; return <button key={picture.id} className={picked.includes(picture.id) ? "found" : ""} disabled={picked.includes(picture.id)} onClick={() => chooseJungle(picture.id)} aria-label={picture.label}><span className={`atlas-${picture.atlas}`} style={{ backgroundImage: `url(${basePath}/word-builder-atlas-${picture.atlas}.png)`, backgroundPosition: picture.position }} />{picked.includes(picture.id) && <small>{picture.label} · {picture.letter}</small>}</button>; })}</div></>}
+              {active === "jungle" && <div className="fillword-game">
+                <div className="fillword-hud"><span className="level-pill">LEVEL {round + 1} / 6</span><div className="level-track"><i style={{ width: `${((round + 1) / 6) * 100}%` }} /></div><span className="coin-pill">★ {foundWords.length}/{jungleLevel.words.length}</span></div>
+                <div className="theme-heading"><span>{jungleLevel.icon}</span><div><small>WORD THEME</small><h3>{jungleLevel.theme}</h3></div></div>
+                <p className="fillword-instruction">Click letters in order. Every next tile must touch the previous one.</p>
+                <div className="fillword-layout">
+                  <div className="fillword-board" style={{ gridTemplateColumns: `repeat(${jungleLevel.size}, 1fr)`, "--field-size": jungleLevel.size } as React.CSSProperties}>
+                    {jungleGrid.map((letter, index) => <button key={index} className={`${picked.includes(String(index)) ? "selected" : ""} ${foundWords.some((word) => { let offset = 0; for (const item of jungleLevel.words) { const start = offset; offset += item.length; if (item === word) { const row = Math.floor(index / jungleLevel.size); const order = row % 2 === 0 ? row * jungleLevel.size + index % jungleLevel.size : row * jungleLevel.size + (jungleLevel.size - 1 - index % jungleLevel.size); return order >= start && order < offset; } } return false; }) ? "solved" : ""}`} onClick={() => chooseJungle(index)} aria-label={`Letter ${letter}`}>{letter}</button>)}
+                  </div>
+                  <div className="word-bank"><small>FIND THESE WORDS</small><div>{jungleLevel.words.map((word) => <span className={foundWords.includes(word) ? "found" : ""} key={word}>{foundWords.includes(word) ? "✓ " : ""}{word}</span>)}</div></div>
+                </div>
+                <p className="selection-readout" aria-live="polite">{message || "Choose the first letter of any word"}</p>
+                {levelReward && <div className="level-reward"><div className="reward-rays" /><span className="reward-icon">{round === 5 ? "👑" : round % 2 ? "🪙" : "🏆"}</span><small>LEVEL COMPLETE!</small><h3>{levelReward}</h3><p>Your prize has been added to the explorer&apos;s collection.</p><button className="play-button" onClick={nextJungleLevel}>{round === 5 ? "CLAIM MAP PIECE" : `CONTINUE TO LEVEL ${round + 2}`} <span>›</span></button></div>}
+              </div>}
               {active === "temple" && gameOver ? <div className="game-over temple-over"><p className="mission">THE SPELL COLLAPSED</p><h3>Restart the magical workshop</h3><p>Catch the word spheres in the correct order and protect your three lives.</p><button className="play-button" onClick={() => openGame("temple")}>TRY AGAIN <span>›</span></button></div> : active === "temple" && <><div className="jungle-hud temple-hud"><span className="lives" aria-label={`${lives} lives remaining`}>{"❤️".repeat(lives)}{"♡".repeat(3 - lives)}</span><span>CHAMBER {round + 1} / 6</span><span className={`timer ${timeLeft <= 5 ? "danger" : ""}`}>⏱ {timeLeft}s</span></div><p className="mission">MAGICAL WORKSHOP · {templeRounds[round].topic}</p><div className="spell-clue"><span>✦</span><div><small>CREATE A SPELL ABOUT</small><p>{templeRounds[round].clue}</p></div><button className="listen temple-listen" onClick={speakTemple} aria-label="Hear the complete spell">🔊 HEAR CLUE</button></div><div className={`temple-altar ${picked.length === templeRounds[round].words.length ? "activated" : ""}`}><div className="altar-runes">◇ ✦ ◇</div><div className="altar-slots">{templeRounds[round].words.map((word, index) => <span className={picked[index] ? "filled" : ""} key={`${word}-${index}`}>{picked[index] || "?"}</span>)}</div><div className="altar-base">THE SENTENCE ALTAR</div></div><p className="orb-instruction">Catch the spheres in the correct order</p><div className="magic-orbs">{options.map((option, index) => <button key={option} className={picked.includes(option) ? "captured" : ""} disabled={picked.includes(option)} style={{ animationDelay: `${index * -0.43}s` }} onClick={() => chooseTempleWord(option)}><span>{option}</span></button>)}</div></>}
               {active === "pirate" && gameOver ? <div className="game-over pirate-over"><p className="mission">THE SEARCH IS OVER</p><h3>The island keeps its secrets</h3><p>Listen carefully and search every corner of the picture.</p><button className="play-button" onClick={() => openGame("pirate")}>TRY AGAIN <span>›</span></button></div> : active === "pirate" && <><div className="jungle-hud pirate-hud"><span className="lives" aria-label={`${lives} lives remaining`}>{"❤️".repeat(lives)}{"♡".repeat(5 - lives)}</span><span>FOUND {picked.length} / 8</span><span className={`timer ${audioPlayed && timeLeft <= 5 ? "danger" : ""}`}>{audioPlayed ? `⏱ ${timeLeft}s` : "⏱ READY"}</span></div><div className="hidden-mission"><div><p className="mission">AUDIO HIDDEN-OBJECT MISSION</p><small>{audioPlayed ? "The clue is playing. Find the object in the scene." : "The written clue is hidden — listen to begin."}</small></div><button className="listen audio-only" onClick={speak} disabled={audioPlaysLeft === 0}>🔊 {audioPlayed ? "REPLAY CLUE" : "PLAY AUDIO CLUE"} · {audioPlaysLeft}</button></div><div className={`hidden-scene ${audioPlayed ? "searching" : "locked"}`} onClick={loseHiddenLife} role="application" aria-label="Pirate island hidden-object scene"><Image src={`${basePath}/pirate-hidden-objects.png`} alt="A detailed pirate island cove with hidden objects" fill sizes="(max-width: 850px) 94vw, 760px" priority />{hiddenItems.map((item) => <button key={item.id} className={`object-hotspot ${picked.includes(item.id) ? "found" : ""}`} disabled={picked.includes(item.id) || !audioPlayed} style={{ left: `${item.x}%`, top: `${item.y}%`, width: `${item.w}%`, height: `${item.h}%` }} onClick={(event) => { event.stopPropagation(); chooseHiddenItem(item.id); }} aria-label={picked.includes(item.id) ? `${item.label}, found` : "Hidden object"}>{picked.includes(item.id) && <span>✓</span>}</button>)}</div><div className="found-strip">{hiddenItems.map((item) => <span className={picked.includes(item.id) ? "found" : ""} key={item.id}>{picked.includes(item.id) ? `✓ ${item.label}` : "?"}</span>)}</div></>}
-              {!gameOver && <div className="game-status"><span>{`${lives} lives`}</span><p aria-live="polite">{message || (active === "jungle" ? `Find a picture beginning with ${jungleLevel.word[picked.length]}` : active === "pirate" ? (audioPlayed ? "Search the picture" : "Play the audio clue") : "Choose your answer")}</p><b>{active === "pirate" ? `${"◆".repeat(picked.length)}${"◇".repeat(8 - picked.length)}` : `${"◆".repeat(round)}${"◇".repeat(6 - round)}`}</b></div>}
+              {!gameOver && active !== "jungle" && <div className="game-status"><span>{`${lives} lives`}</span><p aria-live="polite">{message || (active === "pirate" ? (audioPlayed ? "Search the picture" : "Play the audio clue") : "Choose your answer")}</p><b>{active === "pirate" ? `${"◆".repeat(picked.length)}${"◇".repeat(8 - picked.length)}` : `${"◆".repeat(round)}${"◇".repeat(6 - round)}`}</b></div>}
             </>}
           </div>
         </div>
