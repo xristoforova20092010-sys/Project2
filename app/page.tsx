@@ -65,13 +65,19 @@ const jungleWordLevels: FillwordLevel[] = [
 function makeFillword(level: FillwordLevel) {
   const letters = level.words.join("").split("");
   const grid = Array.from({ length: level.size }, () => Array(level.size).fill(""));
+  const path = makeFillwordPath(level);
+  path.forEach((cell, index) => { grid[Math.floor(cell / level.size)][cell % level.size] = letters[index]; });
+  return grid.flat();
+}
+
+function makeFillwordPath(level: FillwordLevel) {
+  if (level.size === 3) return [...Array(9).keys()];
   const path: number[] = [];
   for (let row = 0; row < level.size; row++) {
     const columns = row % 2 === 0 ? [...Array(level.size).keys()] : [...Array(level.size).keys()].reverse();
     columns.forEach((column) => path.push(row * level.size + column));
   }
-  path.forEach((cell, index) => { grid[Math.floor(cell / level.size)][cell % level.size] = letters[index]; });
-  return grid.flat();
+  return path;
 }
 const templeRounds = [
   { prompt: "Tom plays football every Saturday.", clue: "Tom  •  football  •  every Saturday", seconds: 38, words: ["Tom", "plays", "football", "every Saturday"], distractors: ["play", "is playing", "yesterday"], topic: "PRESENT SIMPLE" },
@@ -202,11 +208,7 @@ export default function Home() {
     playTone(440 + (jungleGrid[cellIndex].charCodeAt(0) - 65) * 18);
     const id = String(cellIndex);
     if (picked[picked.length - 1] === id) { setPicked(picked.slice(0, -1)); setMessage("One letter removed."); return; }
-    const snake: number[] = [];
-    for (let row = 0; row < jungleLevel.size; row++) {
-      const columns = row % 2 === 0 ? [...Array(jungleLevel.size).keys()] : [...Array(jungleLevel.size).keys()].reverse();
-      columns.forEach((column) => snake.push(row * jungleLevel.size + column));
-    }
+    const snake = makeFillwordPath(jungleLevel);
     let offset = 0;
     const segments = jungleLevel.words.map((word) => { const cells = snake.slice(offset, offset + word.length); offset += word.length; return { word, cells }; });
     const activeSegment = picked.length ? segments.find(({ cells }) => cells[0] === Number(picked[0])) : segments.find(({ word, cells }) => !foundWords.includes(word) && cells[0] === cellIndex);
@@ -373,7 +375,7 @@ export default function Home() {
                 <p className="fillword-instruction">Click letters in order. Every next tile must touch the previous one.</p>
                 <div className="fillword-layout">
                   <div className="fillword-board" style={{ gridTemplateColumns: `repeat(${jungleLevel.size}, 1fr)`, "--field-size": jungleLevel.size } as React.CSSProperties}>
-                    {jungleGrid.map((letter, index) => <button key={index} className={`${picked.includes(String(index)) ? "selected" : ""} ${foundWords.some((word) => { let offset = 0; for (const item of jungleLevel.words) { const start = offset; offset += item.length; if (item === word) { const row = Math.floor(index / jungleLevel.size); const order = row % 2 === 0 ? row * jungleLevel.size + index % jungleLevel.size : row * jungleLevel.size + (jungleLevel.size - 1 - index % jungleLevel.size); return order >= start && order < offset; } } return false; }) ? "solved" : ""}`} onClick={() => chooseJungle(index)} aria-label={`Letter ${letter}`}>{letter}</button>)}
+                    {jungleGrid.map((letter, index) => <button key={index} className={`${picked.includes(String(index)) ? "selected" : ""} ${foundWords.some((word) => { let offset = 0; for (const item of jungleLevel.words) { const start = offset; offset += item.length; if (item === word) { const order = makeFillwordPath(jungleLevel).indexOf(index); return order >= start && order < offset; } } return false; }) ? "solved" : ""}`} onClick={() => chooseJungle(index)} aria-label={`Letter ${letter}`}>{letter}</button>)}
                   </div>
                   <div className="word-bank"><small>FIND THESE WORDS</small><div>{jungleLevel.words.map((word) => <span className={foundWords.includes(word) ? "found" : ""} key={word}>{foundWords.includes(word) ? "✓ " : ""}{word}</span>)}</div></div>
                 </div>
