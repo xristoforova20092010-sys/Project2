@@ -53,3 +53,45 @@ footer{height:80px;display:flex;justify-content:center;align-items:center;gap:20
 @media(max-width:560px){.pirate-hud{grid-template-columns:1fr}.treasure-hearts{justify-content:center}.treasure-hearts i{font-size:25px}}
 .temple-maze-game{padding:0 8px 5px}.maze-heading{display:flex;align-items:center;justify-content:space-between}.maze-heading h3{margin:2px 0 6px!important}.maze-heading>span{padding:9px 14px;border:1px solid #d2a94e;border-radius:18px;background:#49391b;color:#ffe18a;font:bold 12px Arial}.maze-copy{margin:0 auto 13px;color:#b9aa7d;font:12px/1.45 Arial}.temple-maze{display:grid;grid-template-columns:repeat(9,1fr);gap:3px;width:min(100%,470px);aspect-ratio:1;margin:auto;padding:8px;border:2px solid #967436;border-radius:15px;background:#110f0b;box-shadow:inset 0 0 35px #000,0 12px 25px #0009}.temple-maze>span{position:relative;display:grid;place-items:center;border-radius:5px}.temple-maze .wall{background:linear-gradient(145deg,#4b4438,#211f1b);box-shadow:inset 0 0 0 1px #6d6049,2px 2px 3px #000}.temple-maze .path{background:#182b2b;box-shadow:inset 0 0 7px #42d7bd33}.temple-maze .path::after{content:'·';color:#50cbb5;font-size:20px}.temple-maze .maze-room{border:1px solid #8c6e35;background:#392b16}.temple-maze .maze-room b{z-index:2;color:#76643c;font-size:19px}.temple-maze .maze-room.next-room{border-color:#ffe073;background:#66501d;box-shadow:0 0 14px #ffd65b}.temple-maze .maze-room.next-room b{color:#fff0a5;animation:timerPulse 1.2s infinite}.temple-maze .maze-room.cleared{border-color:#37ba9f;background:#17493f}.temple-maze .maze-room.cleared b{color:#8dffe2}.temple-maze i{position:absolute;z-index:4;font:normal 24px Arial;filter:drop-shadow(0 0 5px #fff)}.maze-controls{margin:12px auto 7px;width:155px}.maze-controls button{width:45px;height:38px;margin:2px;border:1px solid #d3a94f;border-radius:8px;background:#3c301b;color:#ffe5a0;font:bold 22px Arial;cursor:pointer}.maze-controls>button{display:block;margin:auto}.maze-controls button:hover{background:#755a24}.maze-status{display:grid;grid-template-columns:1fr 2fr 1fr;align-items:center;padding-top:8px;border-top:1px solid #5d4a29;color:#d8b85e;font:10px Arial}.maze-status p{margin:0;color:#bdd0cc}.maze-status b{color:#ffe18a}
 @media(max-width:560px){.temple-maze{width:min(100%,360px);gap:2px;padding:5px}.temple-maze i{font-size:19px}.temple-maze .maze-room b{font-size:15px}.maze-copy{font-size:11px}.maze-status{grid-template-columns:1fr;gap:5px}}
+
+/* Compact, image-led game presentation */
+.hero{padding-top:clamp(28px,5vw,64px)}
+.card-icon,.modal-icon,.map-orb,.reward-icon,.theme-art{position:relative;overflow:hidden}
+.card-icon img,.modal-icon img,.map-orb img,.reward-icon img,.theme-art img{object-fit:cover}
+.card-icon img{transform:scale(1.45)}
+.is-complete .card-icon::after{content:"";position:absolute;inset:9px;border:3px solid #efffcf;border-width:0 3px 3px 0;transform:rotate(45deg);z-index:2}
+.modal-icon{display:block;width:76px;height:76px;margin:0 auto 10px;border:2px solid var(--gold);border-radius:50%;box-shadow:0 0 24px #ffd66b55}
+.modal-icon img{transform:scale(1.35)}
+.map-orb img{object-fit:cover;transform:scale(1.8)}
+.theme-art{display:block;width:54px;height:54px;border:2px solid #4bd9ca;border-radius:50%;box-shadow:0 0 18px #4bd9ca55}
+.theme-art img{transform:scale(1.2)}
+.reward-icon{width:92px;height:92px;border:2px solid #ffe47e;border-radius:50%;box-shadow:0 0 28px #ffd95488;animation:treasurePop .65s ease}
+.reward-icon img{transform:scale(2)}
+.spell-art{position:relative!important;display:block;width:48px;height:48px;border:1px solid #e5bd59;border-radius:50%;overflow:hidden;flex:none}
+.spell-art img{object-fit:cover;transform:scale(1.5)}
+.lives{display:flex;gap:6px}.lives i{display:block;width:17px;height:17px;transform:rotate(45deg);border:2px solid #d8b85e}.lives .life-full{background:#d8b85e;box-shadow:0 0 8px #ffd86b}.lives .life-empty{opacity:.35}
+.player-marker{width:72%!important;height:72%;border:2px solid #fff0a5;border-radius:50%;background:url('/temple-trials.png') center/cover;box-shadow:0 0 9px #fff0a5}
+.treasure-gem{display:block;width:16px;height:16px;transform:rotate(45deg);border:1px solid currentColor;background:currentColor}
+.play-button span{width:9px;height:9px;border-top:2px solid currentColor;border-right:2px solid currentColor;transform:rotate(45deg)}
+.how-button::before{content:"i";display:inline-grid;place-items:center;width:17px;height:17px;margin-right:8px;border:1px solid currentColor;border-radius:50%;font:700 11px Georgia}
+
+.game-backdrop{padding:8px;overflow:hidden}
+.game-modal{display:flex;flex-direction:column;height:min(96dvh,900px);max-height:96dvh;overflow:hidden}
+.game-banner{flex:0 0 clamp(78px,13dvh,125px);height:auto}
+.game-banner p{bottom:43px}.game-banner h2{bottom:11px;font-size:clamp(20px,3vw,28px)}
+.game-content{flex:1;min-height:0;overflow:hidden;padding:clamp(10px,2dvh,20px) 26px}
+.fillword-game,.temple-maze-game{height:100%;min-height:0;display:flex;flex-direction:column}
+.fillword-hud{margin:0 0 8px}.theme-heading{margin-bottom:3px}.fillword-instruction{margin-bottom:8px}
+.fillword-layout{flex:1;min-height:0;grid-template-columns:minmax(220px,min(52dvh,470px)) minmax(150px,1fr);gap:16px}
+.fillword-board{width:auto;height:100%;max-height:52dvh;aspect-ratio:1}
+.selection-readout{margin:7px 0 0}
+.temple-maze{width:auto;height:min(52dvh,470px);max-width:100%}.maze-controls{margin:7px auto 3px}.maze-controls button{height:32px}
+.hidden-scene{height:min(53dvh,500px);aspect-ratio:auto}.hidden-scene img{object-position:center}
+.jungle-hud{margin:0 0 8px;padding:7px 12px}.hidden-mission{margin:0 0 8px}.game-status{margin-top:8px;padding-top:7px}
+
+@media(max-width:650px){
+  .game-backdrop{padding:4px}.game-modal{width:99vw;height:99dvh;max-height:99dvh;border-radius:12px}.game-banner{flex-basis:72px}.game-banner p,.game-banner h2{left:16px}.game-banner p{bottom:36px}.game-banner h2{bottom:8px}
+  .game-content{padding:8px 10px}.fillword-layout{grid-template-columns:1fr;gap:6px}.fillword-board{height:min(43dvh,390px);width:min(100%,43dvh)}.word-bank{padding:7px}.word-bank>div{margin-top:5px;gap:5px}.word-bank span{padding:4px 6px}
+  .theme-art{width:42px;height:42px}.theme-heading h3{font-size:20px!important}.fillword-game{min-height:0}.fillword-instruction{font-size:10px}
+  .temple-maze{height:min(44dvh,360px)}.maze-copy{margin-bottom:6px}.hidden-scene{height:min(48dvh,430px)}
+}
